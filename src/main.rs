@@ -21,16 +21,18 @@ enum Action {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     match args.action {
         Action::Stats { paths } => {
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = parse(&mut source).unwrap();
+                let model = parse(&mut source)?;
                 println!("{}", model.id());
             }
         }
     }
+
+    Ok(())
 }

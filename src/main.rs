@@ -219,6 +219,7 @@ fn is_gene_id(identifier: &str) -> bool {
 fn make_graph(model: &GoCamModel) -> GoCamGraph {
     let model_id = model.id();
     let model_title = model.title();
+    let model_taxon = model.taxon();
 
     let mut graph = GoCamGraph::new();
 
@@ -334,7 +335,8 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
 
     for node in temp_nodes.values() {
         if node.enabler_label() == "protein" {
-            println!("{}\t{}\t{}\t{}", model_id, model_title, node.individual_gocam_id, node);
+        println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
+                 node);
         }
     }
 

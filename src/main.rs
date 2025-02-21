@@ -228,7 +228,9 @@ fn individual_is_unknown_protein(individual: &Individual) -> bool {
 }
 
 fn is_gene_id(identifier: &str) -> bool {
-    ["PomBase:", "FB:", "UniProtKB:"].iter().any(|s| identifier.starts_with(*s))
+    ["PomBase:", "FB:", "UniProtKB:", "MGI:", "WB:", "RGD:", "RefSeq:",
+     "Xenbase:", "SGD:", "ZFIN:", "RNAcentral:", "EMAPA:"]
+        .iter().any(|s| identifier.starts_with(*s))
 }
 
 fn make_graph(model: &GoCamModel) -> GoCamGraph {

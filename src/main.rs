@@ -141,9 +141,16 @@ impl GoCamNode {
 
 #[derive(Clone, Debug)]
 struct GoCamEdge {
-    pub fact_id: FactId,
-    pub relation_id: String,
-    pub relation_label: String,
+    pub fact_gocam_id: FactId,
+    pub id: String,
+    pub label: String,
+}
+
+impl Display for GoCamEdge {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.label)?;
+        Ok(())
+    }
 }
 
 const MOLECULAR_FUNCTION_ID: &str = "GO:0003674";
@@ -323,22 +330,51 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         if let (Some(subject_node), Some(object_node)) =
               (temp_nodes.get(subject_id), temp_nodes.get(object_id))
         {
-/*
-            println!("{} ({}) <- {} -> {} ({})",
-                     subject_node.label(), subject_node.individual_type.label_or_id(),
+            let subject_idx = id_map.get(subject_id).unwrap();
+            let object_idx = id_map.get(object_id).unwrap();
+
+            let edge = GoCamEdge {
+                fact_gocam_id: fact.id(),
+                id: fact.property.clone(),
+                label: fact.property_label.clone(),
+            };
+
+            graph.add_edge(*subject_idx, *object_idx, edge);
+
+            println!("{}: {} ({}) <- {} -> {} ({})",
+                     model.id(),
+                     subject_node.label, subject_node.id,
                      fact.property_label,
-                object_node.label(), object_node.individual_type.label_or_id());
+                     object_node.label, object_node.id);
  
-*/
         }
     }
 
     for node in temp_nodes.values() {
         if node.enabler_label() == "protein" {
-        println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
-                 node);
+//        println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
+//                 node);
         }
     }
+
+    use petgraph::dot::Dot;
+
+let dag_graphviz = Dot::with_attr_getters(
+    &graph,
+    &[Config::NodeNoLabel, Config::EdgeNoLabel],
+    &|_, edge| format!("label = \"{}\"", edge.weight().label),
+    &|_, node| {
+        let enabler_label = node.weight().enabler_label();
+        if enabler_label.len() > 0 {
+            format!("label = \"{}\"", enabler_label)
+        } else {
+            format!("label = \"{}\"", node.weight().label)
+        }
+    },
+);
+
+//    println!("{}", Dot::new(&graph));
+    println!("{}", dag_graphviz);
 
     graph
 }

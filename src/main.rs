@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 
-use petgraph::{dot::Config, visit::NodeRef, Graph};
+use petgraph::{dot::Config, visit::{EdgeRef, IntoNodeReferences, NodeRef}, Graph};
 use petgraph::visit::Bfs;
 
 use pombase_gocam::{gocam_parse, FactId, GoCamModel, Individual, IndividualId, IndividualType};
@@ -35,6 +35,11 @@ enum Action {
     },
     #[command(arg_required_else_help = true)]
     Cytoscape {
+        #[arg(required = true)]
+        path: PathBuf,
+    },
+    #[command(arg_required_else_help = true)]
+    CytoscapeSimple {
         #[arg(required = true)]
         path: PathBuf,
     },
@@ -365,12 +370,13 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
 
             graph.add_edge(*subject_idx, *object_idx, edge);
 
+            /*
             println!("{}: {} ({}) <- {} -> {} ({})",
                      model.id(),
                      subject_node.label, subject_node.id,
                      fact.property_label,
                      object_node.label, object_node.id);
- 
+            */
         }
     }
 
@@ -398,7 +404,7 @@ let dag_graphviz = Dot::with_attr_getters(
 );
 
 //    println!("{}", Dot::new(&graph));
-    println!("{}", dag_graphviz);
+//    println!("{}", dag_graphviz);
 
     graph
 }
@@ -507,6 +513,40 @@ fn model_to_cytoscape(model: &GoCamModel) -> String {
      format!("nodes: {},\nedges: {}", nodes_string, edges_string)
 }
 
+fn model_to_cytoscape_simple(graph: &GoCamGraph) -> String {
+     let edges: Vec<_> = graph.edge_references()
+         .map(|edge_ref| {
+             let edge = edge_ref.weight();
+             let subject_node = graph.node_weight(edge_ref.source()).unwrap();
+             let object_node = graph.node_weight(edge_ref.target()).unwrap();
+
+             CytoscapeEdge {
+                 data: CytoscapeEdgeData {
+                     id: edge.fact_gocam_id.clone(),
+                     label: edge.label.clone(),
+                     source: subject_node.individual_gocam_id.clone(),
+                     target: object_node.individual_gocam_id.clone(),
+                 }
+             }
+         }).collect();
+
+     let nodes: Vec<_> = graph.node_references()
+         .map(|(_, individual)| {
+             let label = format!("{} ({})", individual.label, individual.id);
+             Some(CytoscapeNode {
+                 data: CytoscapeNodeData {
+                     id: individual.individual_gocam_id.clone(),
+                     label,
+                 }
+             })
+         }).collect();
+
+     let nodes_string = serde_json::to_string(&nodes).unwrap();
+     let edges_string = serde_json::to_string(&edges).unwrap();
+
+     format!("nodes: {},\nedges: {}", nodes_string, edges_string)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -546,6 +586,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let model = gocam_parse(&mut source)?;
 
             let cytoscape_text = model_to_cytoscape(&model);
+
+            println!("{}", cytoscape_text);
+        }
+        Action::CytoscapeSimple { path } => {
+            let mut source = File::open(path).unwrap();
+            let model = gocam_parse(&mut source)?;
+            let graph = make_graph(&model);
+
+            let cytoscape_text = model_to_cytoscape_simple(&graph);
 
             println!("{}", cytoscape_text);
         }

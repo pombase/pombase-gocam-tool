@@ -153,7 +153,7 @@ const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
 const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
 
 fn has_root_term(individual: &Individual, term_id: &str) -> bool {
-        for individual_type in &individual.root_types {
+    for individual_type in &individual.root_types {
         if let Some(ref individual_type_id) = individual_type.id {
             if individual_type_id == term_id {
                 return true;
@@ -178,6 +178,10 @@ fn individual_is_process(individual: &Individual) -> bool {
 
 fn individual_is_complex(individual: &Individual) -> bool {
     has_root_term(individual, PROTEIN_CONTAINING_COMPLEX_ID)
+}
+
+fn individual_is_chemical(individual: &Individual) -> bool {
+    has_root_term(individual, CHEBI_PROTEIN_ID)
 }
 
 fn get_individual_type(individual: &Individual) -> &IndividualType {
@@ -206,7 +210,8 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
     let mut temp_nodes = HashMap::new();
 
     for individual in model.individuals() {
-        if individual_is_activity(individual) || individual_is_unknown_protein(individual) {
+        if individual_is_activity(individual) || individual_is_chemical(individual) &&
+           !individual_is_unknown_protein(individual){
             let gocam_node = GoCamNode {
                 individual_id: individual.id.clone(),
                 individual_type: get_individual_type(individual).to_owned(),
@@ -293,18 +298,20 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         if let (Some(subject_node), Some(object_node)) =
               (temp_nodes.get(subject_id), temp_nodes.get(object_id))
         {
+/*
             println!("{} ({}) <- {} -> {} ({})",
                      subject_node.label(), subject_node.individual_type.label_or_id(),
                      fact.property_label,
                 object_node.label(), object_node.individual_type.label_or_id());
-
+ 
+*/
         }
     }
 
     for node in temp_nodes.values() {
-        if node.label() == "protein" {
+//        if node.label() == "protein" {
             println!("{}\t{}\t{}", model_id, model_title, node);
-        }
+//        }
     }
 
     graph

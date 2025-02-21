@@ -179,9 +179,20 @@ fn individual_is_process(individual: &Individual) -> bool {
 fn individual_is_complex(individual: &Individual) -> bool {
     has_root_term(individual, PROTEIN_CONTAINING_COMPLEX_ID)
 }
+*/
 
 fn individual_is_chemical(individual: &Individual) -> bool {
-    has_root_term(individual, CHEBI_PROTEIN_ID)
+    if !has_root_term(individual, CHEBI_CHEMICAL_ENTITY_ID) {
+        return false;
+    }
+
+    if let Some(ref id) = get_individual_type(individual).id {
+        if id.starts_with("CHEBI:") {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn get_individual_type(individual: &Individual) -> &IndividualType {
@@ -210,12 +221,21 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
     let mut temp_nodes = HashMap::new();
 
     for individual in model.individuals() {
-        if individual_is_activity(individual) || individual_is_chemical(individual) &&
-           !individual_is_unknown_protein(individual){
+        if individual_is_activity(individual) ||
+            individual_is_chemical(individual) &&
+            !individual_is_unknown_protein(individual) {
+
+                let detail =
+                    if individual_is_chemical(individual) {
+                        let individual_type = get_individual_type(individual).to_owned();
+                        GoCamNodeDetail::Chemical(individual_type)
+                    } else {
+                        GoCamNodeDetail::Unknown
+                    };
             let gocam_node = GoCamNode {
                 individual_id: individual.id.clone(),
                 individual_type: get_individual_type(individual).to_owned(),
-                detail: GoCamNodeDetail::Unknown,
+                detail,
                 has_input: vec![],
                 has_output: vec![],
                 located_in: vec![],

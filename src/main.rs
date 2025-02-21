@@ -1,8 +1,10 @@
-use std::{collections::HashMap, fmt::{self, Display}, fs::File, path::PathBuf};
+use std::{collections::{HashMap, HashSet}, fmt::{self, Display}, fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
+extern crate serde_json;
+#[macro_use] extern crate serde_derive;
 
-use petgraph::Graph;
+use petgraph::{dot::Config, visit::NodeRef, Graph};
 use petgraph::visit::Bfs;
 
 use pombase_gocam::{gocam_parse, FactId, GoCamModel, Individual, IndividualId, IndividualType};
@@ -26,10 +28,15 @@ enum Action {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
-     #[command(arg_required_else_help = true)]
+    #[command(arg_required_else_help = true)]
     GraphTest {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
+    Cytoscape {
+        #[arg(required = true)]
+        path: PathBuf,
     },
 }
 
@@ -176,6 +183,7 @@ fn individual_is_activity(individual: &Individual) -> bool {
     has_root_term(individual, MOLECULAR_FUNCTION_ID)
 }
 
+/*
 fn individual_is_component(individual: &Individual) -> bool {
     has_root_term(individual, CELLULAR_COMPONENT_ID)
 }
@@ -423,6 +431,82 @@ fn print_stats(_model: &GoCamModel) {
 
 }
 
+type CytoscapeId = String;
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct CytoscapeNodeData {
+    id: CytoscapeId,
+    label: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct CytoscapeEdgeData {
+    id: CytoscapeId,
+    label: String,
+    source: CytoscapeId,
+    target: CytoscapeId,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct CytoscapeNode {
+    data: CytoscapeNodeData,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct CytoscapeEdge {
+    data: CytoscapeEdgeData
+}
+
+fn model_to_cytoscape(model: &GoCamModel) -> String {
+     let mut seen_nodes = HashSet::new();
+
+     let edges: Vec<_> = model.facts()
+         .map(|fact| {
+             seen_nodes.insert(fact.subject.clone());
+             seen_nodes.insert(fact.object.clone());
+
+             CytoscapeEdge {
+                 data: CytoscapeEdgeData {
+                     id: fact.id(),
+                     label: fact.property_label.clone(),
+                     source: fact.subject.clone(),
+                     target: fact.object.clone(),
+                 }
+             }
+         }).collect();
+
+     let nodes: Vec<_> = model.individuals()
+         .filter_map(|individual| {
+             if !seen_nodes.contains(&individual.id) {
+                 return None;
+             }
+
+             let Some(individual_type) = individual.types.get(0)
+             else {
+                 return None;
+             };
+
+             let individual_type = individual_type.to_owned();
+
+             let (Some(ref label), Some(ref id)) = (individual_type.label, individual_type.id)
+             else {
+                 return None;
+             };
+             let label = format!("{} ({})", label, id);
+             Some(CytoscapeNode {
+                 data: CytoscapeNodeData {
+                     id: individual.id.clone(),
+                     label,
+                 }
+             })
+         }).collect();
+
+     let nodes_string = serde_json::to_string(&nodes).unwrap();
+     let edges_string = serde_json::to_string(&edges).unwrap();
+
+     format!("nodes: {},\nedges: {}", nodes_string, edges_string)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -456,6 +540,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                    //  println!("{}", model.id());
                 }
             }
+        },
+        Action::Cytoscape { path } => {
+            let mut source = File::open(path).unwrap();
+            let model = gocam_parse(&mut source)?;
+
+            let cytoscape_text = model_to_cytoscape(&model);
+
+            println!("{}", cytoscape_text);
         }
     }
 

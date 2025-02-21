@@ -194,7 +194,12 @@ fn individual_is_chemical(individual: &Individual) -> bool {
         return false;
     }
 
-    if let Some(ref id) = get_individual_type(individual).id {
+    let Some(individual_type) = get_individual_type(individual)
+    else {
+        return false;
+    };
+
+    if let Some(ref id) = individual_type.id {
         if id.starts_with("CHEBI:") {
             return true;
         }
@@ -203,12 +208,15 @@ fn individual_is_chemical(individual: &Individual) -> bool {
     false
 }
 
-fn get_individual_type(individual: &Individual) -> &IndividualType {
-    &individual.types[0]
+fn get_individual_type(individual: &Individual) -> Option<&IndividualType> {
+    individual.types.get(0)
 }
 
 fn individual_is_unknown_protein(individual: &Individual) -> bool {
-    let individual_type = get_individual_type(individual);
+    let Some(individual_type) = get_individual_type(individual)
+    else {
+        return false;
+    };
 
     if let Some(ref individual_type_id) = individual_type.id {
         if individual_type_id == CHEBI_PROTEIN_ID {
@@ -236,7 +244,10 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         if individual_is_activity(individual) ||
             individual_is_chemical(individual) &&
             !individual_is_unknown_protein(individual) {
-                let individual_type = get_individual_type(individual);
+                let Some(individual_type) = get_individual_type(individual)
+                else {
+                    continue;
+                };
                 let detail =
                     if individual_is_chemical(individual) {
                         GoCamNodeType::Chemical
@@ -266,7 +277,10 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         };
 
         let object_individual = model.fact_object(fact);
-        let object_type = get_individual_type(object_individual);
+        let Some(object_type) = get_individual_type(object_individual)
+        else {
+            continue;
+        };
 
         match fact.property_label.as_str() {
             "enabled by" => {

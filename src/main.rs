@@ -50,20 +50,20 @@ type GoCamInput = IndividualType;
 type GoCamOutput = IndividualType;
 
 #[derive(Clone, Debug)]
-enum GoCamEnabler {
+enum GoCamActivity {
     Complex(GoCamComplex),
     Gene(GoCamGene),
     Chemical(GoCamChemical),
     ModifiedProtein(GoCamModifiedProtein),
 }
 
-impl GoCamEnabler {
+impl GoCamActivity {
     pub fn label(&self) -> &str {
         let maybe_label = match self {
-            GoCamEnabler::Complex(complex) => &complex.label,
-            GoCamEnabler::Gene(gene) => &gene.label,
-            GoCamEnabler::Chemical(chemical) => &chemical.label,
-            GoCamEnabler::ModifiedProtein(modified_protein) => &modified_protein.label,
+            GoCamActivity::Complex(complex) => &complex.label,
+            GoCamActivity::Gene(gene) => &gene.label,
+            GoCamActivity::Chemical(chemical) => &chemical.label,
+            GoCamActivity::ModifiedProtein(modified_protein) => &modified_protein.label,
         };
         maybe_label.as_ref().map(|s| s.as_str()).unwrap_or("UNKNOWN")
     }
@@ -73,7 +73,7 @@ impl GoCamEnabler {
 enum GoCamNodeDetail {
     Unknown,
     Chemical(GoCamChemical),
-    Enabler(GoCamEnabler),
+    Activity(GoCamActivity),
 }
 
 #[derive(Clone, Debug)]
@@ -134,7 +134,7 @@ impl GoCamNode {
         match self.detail {
             GoCamNodeDetail::Unknown => "UNKNOWN",
             GoCamNodeDetail::Chemical(ref chemical) => chemical.label_or_id(),
-            GoCamNodeDetail::Enabler(ref enabler) => enabler.label(),
+            GoCamNodeDetail::Activity(ref enabler) => enabler.label(),
         }
     }
 }
@@ -260,20 +260,20 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
             "enabled by" => {
                 if let Some(ref object_type_id) = object_type.id {
                     if object_type_id.starts_with("PomBase:") {
-                        let gene_enabler = GoCamEnabler::Gene(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Enabler(gene_enabler);
+                        let gene_enabler = GoCamActivity::Gene(object_type.clone());
+                        subject_node.detail = GoCamNodeDetail::Activity(gene_enabler);
                     }
                     else if object_type_id.starts_with("CHEBI:") {
-                        let chemical_enabler = GoCamEnabler::Chemical(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Enabler(chemical_enabler);
+                        let chemical_enabler = GoCamActivity::Chemical(object_type.clone());
+                        subject_node.detail = GoCamNodeDetail::Activity(chemical_enabler);
                     }
                     else if object_type_id.starts_with("GO:") || object_type_id.starts_with("ComplexPortal:") {
-                        let complex_enabler = GoCamEnabler::Complex(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Enabler(complex_enabler);
+                        let complex_enabler = GoCamActivity::Complex(object_type.clone());
+                        subject_node.detail = GoCamNodeDetail::Activity(complex_enabler);
                     }
                     else if object_type_id.starts_with("PR:") {
-                        let modified_protein_enabler = GoCamEnabler::ModifiedProtein(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Enabler(modified_protein_enabler);
+                        let modified_protein_enabler = GoCamActivity::ModifiedProtein(object_type.clone());
+                        subject_node.detail = GoCamNodeDetail::Activity(modified_protein_enabler);
                     }
                     else  {
                         eprintln!("can't handle enabled by object: {}", object_individual.id);

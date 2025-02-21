@@ -304,7 +304,7 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
                         subject_node.node_type = GoCamNodeType::Activity(modified_protein_enabler);
                     }
                     else  {
-                        eprintln!("can't handle enabled by object: {}", object_individual.id);
+                        eprintln!("can't handle enabled by object: {} - {}", object_type_id, object_individual.id);
                     }
                 }
             },

@@ -212,6 +212,9 @@ fn individual_is_unknown_protein(individual: &Individual) -> bool {
     false
 }
 
+fn is_gene_id(identifier: &str) -> bool {
+    ["PomBase:", "FB:", "UniProtKB:"].iter().any(|s| identifier.starts_with(*s))
+}
 
 fn make_graph(model: &GoCamModel) -> GoCamGraph {
     let model_id = model.id();
@@ -260,7 +263,7 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         match fact.property_label.as_str() {
             "enabled by" => {
                 if let Some(ref object_type_id) = object_type.id {
-                    if object_type_id.starts_with("PomBase:") {
+                    if is_gene_id(object_type_id) {
                         let gene_enabler = GoCamActivity::Gene(object_type.clone());
                         subject_node.node_type = GoCamNodeType::Activity(gene_enabler);
                     }

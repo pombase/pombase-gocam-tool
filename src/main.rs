@@ -70,17 +70,18 @@ impl GoCamActivity {
 }
 
 #[derive(Clone, Debug)]
-enum GoCamNodeDetail {
+enum GoCamNodeType {
     Unknown,
-    Chemical(GoCamChemical),
+    Chemical,
     Activity(GoCamActivity),
 }
 
 #[derive(Clone, Debug)]
 struct GoCamNode {
-    pub individual_id: IndividualId,
-    pub individual_type: IndividualType,
-    pub detail: GoCamNodeDetail,
+    pub individual_gocam_id: IndividualId,
+    pub id: String,
+    pub label: String,
+    pub node_type: GoCamNodeType,
     pub has_input: Vec<GoCamInput>,
     pub has_output: Vec<GoCamOutput>,
     pub located_in: Vec<GoCamComponent>,
@@ -90,10 +91,9 @@ struct GoCamNode {
 
 impl Display for GoCamNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//        writeln!(f, "{}", self.individual_id)?;
-        write!(f, "{}\t", self.label())?;
-        let type_label_or_id = self.individual_type.label_or_id();
-        write!(f, "{}\t", type_label_or_id)?;
+        write!(f, "{}\t", self.id)?;
+        write!(f, "{}\t", self.label)?;
+        write!(f, "{}\t", self.enabler_label())?;
         if let Some(ref part_of_process) = self.part_of_process {
             write!(f, "{}\t", part_of_process.label_or_id())?;
         } else {
@@ -130,11 +130,11 @@ impl Display for GoCamNode {
 }
 
 impl GoCamNode {
-    pub fn label(&self) -> &str {
-        match self.detail {
-            GoCamNodeDetail::Unknown => "UNKNOWN",
-            GoCamNodeDetail::Chemical(ref chemical) => chemical.label_or_id(),
-            GoCamNodeDetail::Activity(ref enabler) => enabler.label(),
+    pub fn enabler_label(&self) -> &str {
+        if let GoCamNodeType::Activity(ref enabler) = self.node_type {
+            enabler.label()
+        } else {
+            ""
         }
     }
 }
@@ -151,6 +151,7 @@ const CELLULAR_COMPONENT_ID: &str = "GO:0032991";
 const BIOLOGICAL_PROCESS_ID: &str = "GO:0008150";
 const PROTEIN_CONTAINING_COMPLEX_ID: &str = "GO:0032991";
 const CHEBI_PROTEIN_ID: &str = "CHEBI:36080";
+const CHEBI_CHEMICAL_ENTITY_ID: &str = "CHEBI:24431";
 
 fn has_root_term(individual: &Individual, term_id: &str) -> bool {
     for individual_type in &individual.root_types {
@@ -224,18 +225,18 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         if individual_is_activity(individual) ||
             individual_is_chemical(individual) &&
             !individual_is_unknown_protein(individual) {
-
+                let individual_type = get_individual_type(individual);
                 let detail =
                     if individual_is_chemical(individual) {
-                        let individual_type = get_individual_type(individual).to_owned();
-                        GoCamNodeDetail::Chemical(individual_type)
+                        GoCamNodeType::Chemical
                     } else {
-                        GoCamNodeDetail::Unknown
+                        GoCamNodeType::Unknown
                     };
             let gocam_node = GoCamNode {
-                individual_id: individual.id.clone(),
-                individual_type: get_individual_type(individual).to_owned(),
-                detail,
+                individual_gocam_id: individual.id.clone(),
+                id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
+                label: individual_type.label.clone().unwrap_or_else(|| "NO_LABEL".to_owned()),
+                node_type: detail,
                 has_input: vec![],
                 has_output: vec![],
                 located_in: vec![],
@@ -261,19 +262,19 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
                 if let Some(ref object_type_id) = object_type.id {
                     if object_type_id.starts_with("PomBase:") {
                         let gene_enabler = GoCamActivity::Gene(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Activity(gene_enabler);
+                        subject_node.node_type = GoCamNodeType::Activity(gene_enabler);
                     }
                     else if object_type_id.starts_with("CHEBI:") {
                         let chemical_enabler = GoCamActivity::Chemical(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Activity(chemical_enabler);
+                        subject_node.node_type = GoCamNodeType::Activity(chemical_enabler);
                     }
                     else if object_type_id.starts_with("GO:") || object_type_id.starts_with("ComplexPortal:") {
                         let complex_enabler = GoCamActivity::Complex(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Activity(complex_enabler);
+                        subject_node.node_type = GoCamNodeType::Activity(complex_enabler);
                     }
                     else if object_type_id.starts_with("PR:") {
                         let modified_protein_enabler = GoCamActivity::ModifiedProtein(object_type.clone());
-                        subject_node.detail = GoCamNodeDetail::Activity(modified_protein_enabler);
+                        subject_node.node_type = GoCamNodeType::Activity(modified_protein_enabler);
                     }
                     else  {
                         eprintln!("can't handle enabled by object: {}", object_individual.id);
@@ -305,7 +306,7 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
 
     for node in temp_nodes.values() {
         let idx = graph.add_node(node.to_owned());
-        id_map.insert(node.individual_id.clone(), idx);
+        id_map.insert(node.individual_gocam_id.clone(), idx);
     }
 
     for fact in model.facts() {
@@ -329,9 +330,9 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
     }
 
     for node in temp_nodes.values() {
-//        if node.label() == "protein" {
-            println!("{}\t{}\t{}", model_id, model_title, node);
-//        }
+        if node.enabler_label() == "protein" {
+            println!("{}\t{}\t{}\t{}", model_id, model_title, node.individual_gocam_id, node);
+        }
     }
 
     graph

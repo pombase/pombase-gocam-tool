@@ -1,13 +1,10 @@
-use std::{collections::{HashMap, HashSet}, fmt::{self, Display}, fs::File, path::PathBuf};
+use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
-extern crate serde_json;
-#[macro_use] extern crate serde_derive;
 
-use petgraph::{dot::Config, graph::NodeIndex, visit::{EdgeRef, IntoNodeReferences, NodeRef}, Graph, Undirected};
 use petgraph::visit::Bfs;
 
-use pombase_gocam::{gocam_parse, FactId, GoCamModel, Individual, IndividualId, IndividualType};
+use pombase_gocam::{gocam_parse, GoCamModel};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]

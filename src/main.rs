@@ -34,6 +34,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    FindHoles {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     Cytoscape {
         #[arg(required = true)]
         path: PathBuf,
@@ -259,14 +264,8 @@ fn is_gene_id(identifier: &str) -> bool {
         .iter().any(|s| identifier.starts_with(*s))
 }
 
-fn make_graph(model: &GoCamModel) -> GoCamGraph {
-    let model_id = model.id();
-    let model_title = model.title();
-    let model_taxon = model.taxon();
-
-    let mut graph = GoCamGraph::new();
-
-    let mut temp_nodes = HashMap::new();
+fn make_nodes(model: &GoCamModel) -> HashMap<IndividualId, GoCamNode> {
+    let mut node_map = HashMap::new();
 
     for individual in model.individuals() {
         if individual_is_activity(individual) ||
@@ -294,12 +293,12 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
                 part_of_process: None,
             };
 
-            temp_nodes.insert(individual.id.clone(), gocam_node);
+            node_map.insert(individual.id.clone(), gocam_node);
         }
     }
 
     for fact in model.facts() {
-        let Some(subject_node) = temp_nodes.get_mut(&fact.subject)
+        let Some(subject_node) = node_map.get_mut(&fact.subject)
         else {
             continue;
         };
@@ -355,6 +354,19 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
         }
     }
 
+    node_map
+}
+
+fn make_graph(model: &GoCamModel) -> GoCamGraph {
+/*
+    let model_id = model.id();
+    let model_title = model.title();
+    let model_taxon = model.taxon();
+*/
+    let mut graph = GoCamGraph::new();
+
+    let temp_nodes = make_nodes(model);
+
     let mut id_map = HashMap::new();
 
     for node in temp_nodes.values() {
@@ -392,14 +404,6 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
             */
         }
     }
-
-    for node in temp_nodes.values() {
-        if node.enabler_label() == "protein" {
-//        println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
-//                 node);
-        }
-    }
-
     use petgraph::dot::Dot;
 
 let dag_graphviz = Dot::with_attr_getters(
@@ -489,7 +493,8 @@ fn print_stats(model: &GoCamModel) {
         }
     }
 
-    println!("{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(), total_genes, max_connected_genes, total_connected_genes);
+    println!("{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(),
+             total_genes, max_connected_genes, total_connected_genes);
 }
 
 type CytoscapeId = String;
@@ -612,6 +617,20 @@ fn model_to_cytoscape_simple(graph: &GoCamGraph) -> String {
      format!("nodes: {},\nedges: {}", nodes_string, edges_string)
 }
 
+fn find_holes(model: &GoCamModel) {
+    let model_id = model.id();
+    let model_title = model.title();
+    let model_taxon = model.taxon();
+
+    let node_map = make_nodes(model);
+    for node in node_map.values() {
+        if node.enabler_label() == "protein" {
+        println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
+                 node);
+        }
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -643,6 +662,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 while let Some(_) = bfs.next(&graph) {
                    //  println!("{}", model.id());
                 }
+            }
+        },
+        Action::FindHoles { paths } => {
+            println!("model_id\tmodel_title\ttype\tactivity\tprocess\tinput\toutput\toccurs_in\tlocated_in");
+            for path in paths {
+                let mut source = File::open(path).unwrap();
+                let model = gocam_parse(&mut source)?;
+
+                find_holes(&model);
             }
         },
         Action::Cytoscape { path } => {

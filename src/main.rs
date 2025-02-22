@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 
-use petgraph::{dot::Config, visit::{EdgeRef, IntoNodeReferences, NodeRef}, Graph};
+use petgraph::{dot::Config, graph::NodeIndex, visit::{EdgeRef, IntoNodeReferences, NodeRef}, Graph, Undirected};
 use petgraph::visit::Bfs;
 
 use pombase_gocam::{gocam_parse, FactId, GoCamModel, Individual, IndividualId, IndividualType};
@@ -142,6 +142,19 @@ impl Display for GoCamNode {
 }
 
 impl GoCamNode {
+    pub fn type_string(&self) -> &str {
+        match &self.node_type {
+            GoCamNodeType::Unknown => "unknown",
+            GoCamNodeType::Chemical => "chemical",
+            GoCamNodeType::Activity(activity) => match activity {
+                GoCamActivity::Chemical(_) => "enabled_by_chemical",
+                GoCamActivity::Gene(_) => "enabled_by_gene",
+                GoCamActivity::ModifiedProtein(_) => "enabled_by_modified_protein",
+                GoCamActivity::Complex(_) => "enabled_by_complex",
+            }
+        }
+    }
+
     pub fn enabler_label(&self) -> &str {
         if let GoCamNodeType::Activity(ref enabler) = self.node_type {
             enabler.label()
@@ -257,18 +270,18 @@ fn make_graph(model: &GoCamModel) -> GoCamGraph {
 
     for individual in model.individuals() {
         if individual_is_activity(individual) ||
-            individual_is_chemical(individual) &&
-            !individual_is_unknown_protein(individual) {
-                let Some(individual_type) = get_individual_type(individual)
-                else {
-                    continue;
-                };
-                let detail =
-                    if individual_is_chemical(individual) {
-                        GoCamNodeType::Chemical
-                    } else {
-                        GoCamNodeType::Unknown
-                    };
+        individual_is_chemical(individual) &&
+        !individual_is_unknown_protein(individual) {
+            let Some(individual_type) = get_individual_type(individual)
+            else {
+                continue;
+            };
+            let detail =
+            if individual_is_chemical(individual) {
+                GoCamNodeType::Chemical
+            } else {
+                GoCamNodeType::Unknown
+            };
             let gocam_node = GoCamNode {
                 individual_gocam_id: individual.id.clone(),
                 id: individual_type.id.clone().unwrap_or_else(|| "NO_ID".to_owned()),
@@ -433,8 +446,50 @@ fn print_tuples(model: &GoCamModel) {
     }
 }
 
-fn print_stats(_model: &GoCamModel) {
+fn print_stats(model: &GoCamModel) {
+    let graph = &make_graph(&model).into_edge_type::<Undirected>() ;
 
+    let mut seen_idxs = HashSet::new();
+
+    let mut total_genes = 0;
+    let mut max_connected_genes = 0;
+    let mut total_connected_genes = 0;
+
+    for idx in graph.node_indices() {
+        if seen_idxs.contains(&idx) {
+            continue;
+        }
+
+        let mut connected_genes = 0;
+
+        seen_idxs.insert(idx);
+
+        let mut bfs = Bfs::new(&graph, idx);
+
+        let mut inc_counts = |nx: NodeIndex| {
+            let gocam_node = graph.node_weight(nx).unwrap();
+            let ntype = gocam_node.type_string();
+            if ntype.starts_with("enabled_by") {
+                total_genes += 1;
+                connected_genes += 1;
+            }
+        };
+
+        while let Some(nx) = bfs.next(&graph) {
+            seen_idxs.insert(nx);
+            inc_counts(nx);
+        }
+
+        if connected_genes > 1 {
+            if connected_genes > max_connected_genes {
+                max_connected_genes = connected_genes;
+            }
+
+            total_connected_genes += connected_genes;
+        }
+    }
+
+    println!("{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(), total_genes, max_connected_genes, total_connected_genes);
 }
 
 type CytoscapeId = String;
@@ -443,6 +498,8 @@ type CytoscapeId = String;
 struct CytoscapeNodeData {
     id: CytoscapeId,
     label: String,
+    #[serde(rename = "type")]
+    type_string: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -555,7 +612,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse(&mut source)?;
-                println!("{}", model.id());
 
                 print_stats(&model);
             }

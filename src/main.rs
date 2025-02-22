@@ -84,7 +84,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse(&mut source)?;
 
-                print_stats(&model);
+                let stats = get_stats(&model);
+
+                println!("{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(),
+                         stats.total_genes, stats.max_connected_genes,
+                         stats.total_connected_genes);
             }
         }
         Action::PrintTuples { paths } => {

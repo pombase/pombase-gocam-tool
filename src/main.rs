@@ -51,6 +51,30 @@ enum Action {
     },
 }
 
+fn print_tuples(model: &GoCamModel) {
+    let empty = &"".to_owned();
+    for fact in model.facts() {
+        let subject = model.fact_subject(fact);
+        let object = model.fact_object(fact);
+        let Some(subject_type) = subject.types.get(0)
+        else {
+            continue;
+        };
+        let Some(object_type) = object.types.get(0)
+        else {
+            continue;
+        };
+        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                 model.id(),
+                 model.title(),
+                 subject_type.label.as_ref().unwrap_or(empty),
+                 subject_type.id.as_ref().unwrap_or(&subject_type.type_string),
+                 fact.property_label,
+                 object_type.label.as_ref().unwrap_or(empty),
+                 object_type.id.as_ref().unwrap_or(&object_type.type_string));
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 

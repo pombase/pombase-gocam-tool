@@ -2,6 +2,7 @@ use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
+use petgraph::dot::{Dot, Config};
 use petgraph::visit::Bfs;
 
 use pombase_gocam::{gocam_parse, GoCamModel};
@@ -46,6 +47,11 @@ enum Action {
         #[arg(required = true)]
         path: PathBuf,
     },
+    #[command(arg_required_else_help = true)]
+    GraphVizDot {
+        #[arg(required = true)]
+        path: PathBuf,
+    }
 }
 
 fn print_tuples(model: &GoCamModel) {
@@ -145,6 +151,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let cytoscape_text = model_to_cytoscape_simple(&graph);
 
             println!("{}", cytoscape_text);
+        },
+        Action::GraphVizDot { path } => {
+            let mut source = File::open(path).unwrap();
+            let model = gocam_parse(&mut source)?;
+            let graph = make_graph(&model);
+
+            let dag_graphviz = Dot::with_attr_getters(
+                &graph,
+                &[Config::NodeNoLabel, Config::EdgeNoLabel],
+                &|_, edge| format!("label = \"{}\"", edge.weight().label),
+                &|_, (_, node)| {
+                    let enabler_label = node.enabler_label();
+                    if enabler_label.len() > 0 {
+                        format!("label = \"{}\"", enabler_label)
+                    } else {
+                        format!("label = \"{}\"", node.label)
+                    }
+                },
+            );
+
+            println!("{}", dag_graphviz);
         }
     }
 

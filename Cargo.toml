@@ -1,6 +1,6 @@
 [package]
-name = "pombase-gocam-process"
-version = "0.4.0"
+name = "pombase-gocam-tool"
+version = "0.5.0"
 edition = "2021"
 
 [dependencies]

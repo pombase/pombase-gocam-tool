@@ -2,11 +2,14 @@
 
 [PomBase](https://www.pombase.org) tool for processing GO-CAM models.
 
+## Compilation
+
+`cargo build --release`
+
 ## Sub-commands
 
  - `find-holes`
  - `stats`
- 
  
 ## Examples commands
 

@@ -617,18 +617,16 @@ fn model_to_cytoscape_simple(graph: &GoCamGraph) -> String {
      format!("nodes: {},\nedges: {}", nodes_string, edges_string)
 }
 
-fn find_holes(model: &GoCamModel) {
-    let model_id = model.id();
-    let model_title = model.title();
-    let model_taxon = model.taxon();
-
+fn find_holes(model: &GoCamModel) -> Vec<GoCamNode> {
     let node_map = make_nodes(model);
-    for node in node_map.values() {
+    node_map.into_values().filter_map(|node| {
         if node.enabler_label() == "protein" {
-        println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
-                 node);
+            Some(node)
+        } else {
+            None
         }
-    }
+    })
+    .collect()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -665,12 +663,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::FindHoles { paths } => {
-            println!("model_id\tmodel_title\ttype\tactivity\tprocess\tinput\toutput\toccurs_in\tlocated_in");
+            println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\ttype\tprocess\tinput\toutput\toccurs_in\tlocated_in");
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse(&mut source)?;
 
-                find_holes(&model);
+                let model_id = model.id();
+                let model_title = model.title();
+                let model_taxon = model.taxon();
+
+                let hole_nodes = find_holes(&model);
+
+                for hole_node in hole_nodes {
+                    println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
+                             hole_node);
+
+                }
             }
         },
         Action::Cytoscape { path } => {

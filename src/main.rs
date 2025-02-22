@@ -104,8 +104,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let first_index = graph.node_indices().next().unwrap();
 
                 let mut bfs = Bfs::new(&graph, first_index);
-                while let Some(_) = bfs.next(&graph) {
-                   //  println!("{}", model.id());
+                while let Some(nx) = bfs.next(&graph) {
+                    let node = graph.node_weight(nx).unwrap();
+                    println!("{}: {} {}", model.id(), node.id, node.label);
                 }
             }
         },

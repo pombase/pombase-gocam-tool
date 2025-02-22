@@ -117,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::FindHoles { paths } => {
-            println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\ttype\tprocess\tinput\toutput\toccurs_in\tlocated_in");
+            println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse(&mut source)?;

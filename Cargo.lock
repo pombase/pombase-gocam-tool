@@ -228,12 +228,12 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "petgraph",
  "pombase-gocam",
- "pombase-gocam-process 0.5.0",
+ "pombase-gocam-process 0.6.0",
  "serde",
  "serde_derive",
  "serde_json",
@@ -241,8 +241,8 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.5.0"
-source = "git+https://github.com/pombase/pombase-gocam-process.git#8339bc6dd28b4f54614082f1aff9fadf3f1b3fab"
+version = "0.6.0"
+source = "git+https://github.com/pombase/pombase-gocam-process.git#59183c91caf503e021474876a2779b5049c13943"
 dependencies = [
  "petgraph",
  "pombase-gocam",

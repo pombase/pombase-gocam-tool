@@ -89,9 +89,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let stats = get_stats(&model);
 
-                println!("{}\t{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(),
-                         stats.total_genes, stats.max_connected_genes,
-                         stats.total_connected_genes, stats.number_of_holes);
+                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(),
+                         stats.total_genes, stats.total_complexes, stats.max_connected_activities,
+                         stats.total_connected_activities, stats.number_of_holes);
             }
         }
         Action::PrintTuples { paths } => {

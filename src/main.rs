@@ -28,6 +28,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    PrintActivities {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     GraphTest {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
@@ -99,6 +104,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse(&mut source)?;
                 print_tuples(&model);
+            }
+        },
+        Action::PrintActivities { paths } => {
+            println!("model_id\tmodel_title\ttaxon\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in");
+
+            for path in paths {
+                let mut source = File::open(path).unwrap();
+                let model = gocam_parse(&mut source)?;
+
+                let model_id = model.id();
+                let model_title = model.title();
+                let model_taxon = model.taxon();
+
+                let nodes = make_nodes(&model);
+
+                for node in nodes.values() {
+                    println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node);
+                }
             }
         },
         Action::GraphTest { paths } => {

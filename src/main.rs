@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use petgraph::dot::{Dot, Config};
 use petgraph::visit::Bfs;
 
-use pombase_gocam::{gocam_parse, GoCamModel};
+use pombase_gocam::{gocam_parse, GoCamRawModel};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -56,10 +56,15 @@ enum Action {
     GraphVizDot {
         #[arg(required = true)]
         path: PathBuf,
-    }
+    },
+    #[command(arg_required_else_help = true)]
+    DetachedGenes {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
 }
 
-fn print_tuples(model: &GoCamModel) {
+fn print_tuples(model: &GoCamRawModel) {
     let empty = &"".to_owned();
     for fact in model.facts() {
         let subject = model.fact_subject(fact);
@@ -195,6 +200,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             println!("{}", dag_graphviz);
+        },
+        Action::DetachedGenes { paths } => {
+//            println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
+
+            for path in paths {
+                let mut source = File::open(path).unwrap();
+                let model = gocam_parse(&mut source)?;
+
+                let model_id = model.id();
+
+                let detached_genes = find_detached_genes(&model);
+
+                for (id, gene_id, gene_label) in detached_genes {
+                    println!("{}\t{}\t{}\t{}", model_id, id, gene_id, gene_label);
+
+                }
+            }
         }
     }
 

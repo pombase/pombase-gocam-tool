@@ -2,6 +2,8 @@ use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
+use serde_json;
+
 use petgraph::dot::{Dot, Config};
 
 use pombase_gocam::{gocam_parse, GoCamRawModel};
@@ -179,17 +181,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut source = File::open(path).unwrap();
             let model = gocam_parse(&mut source)?;
 
-            let cytoscape_text = model_to_cytoscape(&model);
+            let elements = model_to_cytoscape(&model);
+            let elements_string = serde_json::to_string(&elements).unwrap();
 
-            println!("{}", cytoscape_text);
+            println!("{}", elements_string);
         }
         Action::CytoscapeSimple { path } => {
             let mut source = File::open(path).unwrap();
             let model = make_gocam_model(&mut source)?;
 
-            let cytoscape_text = model_to_cytoscape_simple(&model);
+            let elements = model_to_cytoscape_simple(&model);
+            let elements_string = serde_json::to_string(&elements).unwrap();
 
-            println!("{}", cytoscape_text);
+            println!("{}", elements_string);
         },
         Action::GraphVizDot { path } => {
             let mut source = File::open(path).unwrap();

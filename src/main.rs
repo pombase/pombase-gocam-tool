@@ -6,7 +6,7 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_parse, GoCamRawModel};
+use pombase_gocam::{gocam_parse, make_gocam_model, GoCamRawModel};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -155,9 +155,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let model_title = model.title();
                 let model_taxon = model.taxon();
 
-                let nodes = model.node_map();
-
-                for node in nodes.values() {
+                for node in model.node_iterator() {
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node);
                 }
             }

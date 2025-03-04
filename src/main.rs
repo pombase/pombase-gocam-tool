@@ -6,7 +6,7 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_parse, make_gocam_model, GoCamRawModel};
+use pombase_gocam::{gocam_parse, make_gocam_model, GoCamModel, GoCamRawModel};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -47,6 +47,11 @@ enum Action {
     CytoscapeSimple {
         #[arg(required = true)]
         path: PathBuf,
+    },
+    #[command(arg_required_else_help = true)]
+    CytoscapeSimpleMerged {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
     GraphVizDot {
@@ -194,6 +199,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let model = make_gocam_model(&mut source)?;
 
             let elements = model_to_cytoscape_simple(&model);
+            let elements_string = serde_json::to_string(&elements).unwrap();
+
+            println!("{}", elements_string);
+        },
+        Action::CytoscapeSimpleMerged { paths } => {
+            let models: Vec<_> = paths.iter().map(|path| {
+                let mut source = File::open(path).unwrap();
+                let model = make_gocam_model(&mut source).unwrap();
+                model
+            })
+            .collect();
+
+            let models: Vec<_> = models.iter().collect();
+
+            eprintln!("len: {}", models.len());
+
+            let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
+
+            let elements = model_to_cytoscape_simple(&merged);
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);

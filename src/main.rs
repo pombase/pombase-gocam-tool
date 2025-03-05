@@ -54,6 +54,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    CytoscapePathways {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     GraphVizDot {
         #[arg(required = true)]
         path: PathBuf,
@@ -221,6 +226,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
 
             let elements = model_to_cytoscape_simple(&merged);
+            let elements_string = serde_json::to_string(&elements).unwrap();
+
+            println!("{}", elements_string);
+        },
+        Action::CytoscapePathways { paths } => {
+            let models: Vec<_> = paths.iter().map(|path| {
+                let mut source = File::open(path).unwrap();
+                let model = make_gocam_model(&mut source).unwrap();
+                model
+            })
+            .collect();
+
+            let model_refs: Vec<_> = models.iter().collect();
+
+            let elements = model_pathways_to_cytoscope(&model_refs);
+
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);

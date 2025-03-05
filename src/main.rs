@@ -1,4 +1,4 @@
-use std::{fs::File, path::PathBuf};
+use std::{collections::HashSet, fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
@@ -75,6 +75,11 @@ enum Action {
     },
     #[command(arg_required_else_help = true)]
     Serialize {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
+    OverlappingActivities {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     }
@@ -213,8 +218,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let models: Vec<_> = models.iter().collect();
 
-            eprintln!("len: {}", models.len());
-
             let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
 
             let elements = model_to_cytoscape_simple(&merged);
@@ -270,6 +273,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let models_string = serde_json::to_string(&models).unwrap();
 
             print!("{}", models_string);
+        },
+        Action::OverlappingActivities { paths } => {
+            let models: Vec<_> = paths.iter().map(|path| {
+                let mut source = File::open(path).unwrap();
+                let model = make_gocam_model(&mut source).unwrap();
+                model
+            })
+            .collect();
+
+            let models: Vec<_> = models.iter().collect();
+
+            let overlaps = GoCamModel::find_activity_overlaps(&models);
+
+            println!("description\tactivity_id\ttype\tenabled_by_type\tenabled_by\tpart_of_process\toccurs_in_id\toccurs_in_label\tmodel_ids");
+
+            for overlap in &overlaps {
+                let mut model_ids = HashSet::new();
+                model_ids.extend(&overlap.model_ids);
+                if model_ids.len() == 1 {
+                    continue;
+                }
+                let enabled_by = overlap.enabled_by_id.replace("PomBase:", "");
+                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                         overlap.node_description, overlap.node_id,
+                         overlap.node_type, overlap.enabled_by_type,
+                         enabled_by, overlap.occurs_in_id,
+                         overlap.part_of_process_label,
+                         overlap.occurs_in_label,
+                         overlap.model_ids.join(","));
+            }
+
         }
     }
 

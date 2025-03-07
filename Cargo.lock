@@ -246,8 +246,8 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.38.0"
-source = "git+https://github.com/pombase/pombase-gocam-process.git#7ba4670fa4b8a430651742e25adc90ca585af86f"
+version = "0.39.0"
+source = "git+https://github.com/pombase/pombase-gocam-process.git#6e820f4c01579329034185d1350c4ab89f481d60"
 dependencies = [
  "anyhow",
  "itertools",

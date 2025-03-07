@@ -69,7 +69,7 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
-    NodesWithActivities {
+    AllGenes {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -87,7 +87,7 @@ enum Action {
     OverlappingActivities {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
-    }
+    },
 }
 
 fn print_tuples(model: &GoCamRawModel) {
@@ -137,18 +137,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path).unwrap();
                 let model = make_gocam_model(&mut source)?;
 
-                for (taxon, gene) in get_connected_genes(&model, 2) {
-                    println!("{taxon}\t{gene}");
+                for gene in get_connected_genes(&model, 2) {
+                    println!("{}\t{gene}", model.taxon());
                 }
             }
         }
-        Action::NodesWithActivities { paths } => {
+        Action::AllGenes { paths } => {
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = make_gocam_model(&mut source)?;
 
-                for (taxon, gene) in get_connected_genes(&model, 1) {
-                    println!("{taxon}\t{gene}");
+                for gene in get_connected_genes(&model, 1) {
+                    println!("{}\t{gene}", model.taxon());
                 }
             }
         }

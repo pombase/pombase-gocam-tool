@@ -88,6 +88,11 @@ enum Action {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
+    #[command(arg_required_else_help = true)]
+    MakeChadoData {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
 }
 
 fn print_tuples(model: &GoCamRawModel) {
@@ -326,7 +331,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                          overlap.occurs_in_label,
                          overlap.model_ids.iter().cloned().collect::<Vec<_>>().join(","));
             }
+        },
+        Action::MakeChadoData { paths } => {
+            let models: Vec<_> = paths.iter().map(|path| {
+                let mut source = File::open(path).unwrap();
+                let model = make_gocam_model(&mut source).unwrap();
+                model
+            })
+            .collect();
 
+            let models: Vec<_> = models.iter().collect();
+
+            let data_for_chado = make_chado_data(&models);
+
+            let chado_string = serde_json::to_string(&data_for_chado).unwrap();
+
+            println!("{}", chado_string);
         }
     }
 

@@ -312,7 +312,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let overlaps = GoCamModel::find_activity_overlaps(&models);
 
-            println!("description\tactivity_term_id\tenabled_by_gene\tpart_of_process\toccurs_in\tmodel_ids");
+            println!("id\tlabel\tpart_of_process\toccurs_in\tmodel_titles\tmodel_ids");
 
             for overlap in &overlaps {
                 let mut model_ids = HashSet::new();
@@ -320,15 +320,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if model_ids.len() == 1 {
                     continue;
                 }
-                let enabled_by = overlap.enabled_by_id.replace("PomBase:", "");
+
                 println!("{}\t{}\t{}\t{}\t{}\t{}",
-                         overlap.node_description, overlap.node_id,
+                         overlap.node_id, overlap.node_label,
                          // overlap.node_type,
                          // overlap.enabled_by_type,
-                         enabled_by,
-                         overlap.part_of_process_label,
+                         overlap.part_of_process.label.clone().unwrap_or_default(),
                          // overlap.occurs_in_id,
-                         overlap.occurs_in_label,
+                         overlap.occurs_in.label(),
+                         overlap.model_titles.iter().cloned()
+                            .map(|title| format!("<div>{}</div>", title)).collect::<Vec<_>>().join(""),
                          overlap.model_ids.iter().cloned().collect::<Vec<_>>().join(","));
             }
         },

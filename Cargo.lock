@@ -248,8 +248,8 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam"
-version = "0.31.0"
-source = "git+https://github.com/pombase/pombase-gocam.git#e1bb87421e77598da287a029e622ea25135b4a98"
+version = "0.32.0"
+source = "git+https://github.com/pombase/pombase-gocam.git#55db01457ca7a2ea8f783fa22e56da762b846675"
 dependencies = [
  "anyhow",
  "petgraph",
@@ -261,8 +261,8 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.42.0"
-source = "git+https://github.com/pombase/pombase-gocam-process.git#36d0f31a91ed76c0982a3df3648c42b173e576ca"
+version = "0.43.0"
+source = "git+https://github.com/pombase/pombase-gocam-process.git#ee78f23cb24f0200c9a943a1d7278f6467dc0425"
 dependencies = [
  "anyhow",
  "itertools",

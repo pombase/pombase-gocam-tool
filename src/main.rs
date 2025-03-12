@@ -310,7 +310,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let models: Vec<_> = models.iter().collect();
 
-            let overlaps = GoCamModel::find_activity_overlaps(&models);
+            let overlaps = GoCamModel::find_overlaps(&models);
 
             println!("id\tlabel\tpart_of_process\toccurs_in\tmodel_titles\tmodel_ids");
 

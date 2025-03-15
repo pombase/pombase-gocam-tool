@@ -84,7 +84,7 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
-    OverlappingActivities {
+    OverlappingNodes {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -300,7 +300,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             print!("{}", models_string);
         },
-        Action::OverlappingActivities { paths } => {
+        Action::OverlappingNodes { paths } => {
             let models: Vec<_> = paths.iter().map(|path| {
                 let mut source = File::open(path).unwrap();
                 let model = make_gocam_model(&mut source).unwrap();

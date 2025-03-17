@@ -61,6 +61,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    CytoscapePathwaysWithRelNodes {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     GraphVizDot {
         #[arg(required = true)]
         path: PathBuf,
@@ -314,6 +319,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let model_refs: Vec<_> = models.iter().collect();
 
             let elements = model_pathways_to_cytoscope(&model_refs);
+
+            let elements_string = serde_json::to_string(&elements).unwrap();
+
+            println!("{}", elements_string);
+        },
+        Action::CytoscapePathwaysWithRelNodes { paths } => {
+            let models: Vec<_> = paths.iter().map(|path| {
+                let mut source = File::open(path).unwrap();
+                let model = parse_gocam_model(&mut source).unwrap();
+                model
+            })
+            .collect();
+
+            let model_refs: Vec<_> = models.iter().collect();
+
+            let elements = model_pathways_to_cytoscope_test(&model_refs);
 
             let elements_string = serde_json::to_string(&elements).unwrap();
 

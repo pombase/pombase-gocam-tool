@@ -6,7 +6,9 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_parse, make_gocam_model, GoCamModel, GoCamRawModel};
+use pombase_gocam::{gocam_parse_raw, parse_gocam_model,
+                    GoCamModel, GoCamNode, GoCamRawModel,
+                    GoCamNodeType, GoCamEnabledBy};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -108,9 +110,10 @@ fn print_tuples(model: &GoCamRawModel) {
         else {
             continue;
         };
-        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
         model.id(),
         model.title(),
+        model.taxon(),
         subject.id,
         subject_type.label.as_ref().unwrap_or(empty),
         subject_type.id.as_ref().unwrap_or(&subject_type.type_string),
@@ -121,6 +124,71 @@ fn print_tuples(model: &GoCamRawModel) {
     }
 }
 
+fn node_type_summary_strings(node: &GoCamNode)
+     -> (&str, &str, &str, &str)
+{
+    match &node.node_type {
+        GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
+        GoCamNodeType::Chemical => ("chemical", "", "", ""),
+        GoCamNodeType::Gene(_) => ("gene", "", "", ""),
+        GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", ""),
+        GoCamNodeType::Activity(enabled_by) => match enabled_by {
+            GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label()),
+            GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
+            GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label()),
+            GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label()),
+        }
+    }
+}
+
+
+fn node_as_tsv(node: &GoCamNode) -> String {
+    let mut ret = String::new();
+
+    ret.push_str(&format!("{}\t", node.node_id));
+
+    ret.push_str(&format!("{}\t", node.label));
+
+    let (node_type, enabled_by_type, enabled_by_id, enabled_by_label) =
+        node_type_summary_strings(node);
+
+    ret.push_str(&format!("{}\t{}\t{}\t{}\t", node_type, enabled_by_type, enabled_by_id, enabled_by_label));
+
+    if let Some(ref part_of_process) = node.part_of_process {
+        ret.push_str(&format!("{}\t", part_of_process.label_or_id()));
+    } else {
+        ret.push_str(&format!("\t"));
+    }
+    let has_input_string =
+        node.has_input.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
+    if has_input_string.len() > 0 {
+        ret.push_str(&format!("{}\t", has_input_string));
+    } else {
+        ret.push_str(&format!("\t"));
+    }
+    let has_output_string =
+        node.has_output.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
+    if has_output_string.len() > 0 {
+        ret.push_str(&format!("{}\t", has_output_string));
+    } else {
+        ret.push_str(&format!("\t"));
+    }
+
+    if let Some(ref occurs_in) = node.occurs_in {
+        ret.push_str(&format!("{}\t", occurs_in.label_or_id()));
+    } else {
+        ret.push_str(&format!("\t"));
+    }
+    if let Some(ref located_in) = node.located_in {
+        ret.push_str(&format!("{}", located_in.label_or_id()));
+    } else {
+        ret.push_str(&format!("\t"));
+    }
+
+    ret
+}
+
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -128,7 +196,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::Stats { paths } => {
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source)?;
+                let model = parse_gocam_model(&mut source)?;
 
                 let stats = get_stats(&model);
 
@@ -140,7 +208,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::ConnectedGenes { paths } => {
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source)?;
+                let model = parse_gocam_model(&mut source)?;
 
                 for gene in get_connected_genes(&model, 2) {
                     println!("{}\t{gene}", model.taxon());
@@ -150,7 +218,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::AllGenes { paths } => {
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source)?;
+                let model = parse_gocam_model(&mut source)?;
 
                 for gene in get_connected_genes(&model, 1) {
                     println!("{}\t{gene}", model.taxon());
@@ -160,7 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::PrintTuples { paths } => {
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = gocam_parse(&mut source)?;
+                let model = gocam_parse_raw(&mut source)?;
                 print_tuples(&model);
             }
         },
@@ -169,14 +237,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source)?;
+                let model = parse_gocam_model(&mut source)?;
 
                 let model_id = model.id();
                 let model_title = model.title();
                 let model_taxon = model.taxon();
 
                 for node in model.node_iterator() {
-                    println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node);
+                    println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node_as_tsv(node));
                 }
             }
         },
@@ -185,7 +253,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source)?;
+                let model = parse_gocam_model(&mut source)?;
 
                 let model_id = model.id();
                 let model_title = model.title();
@@ -195,14 +263,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 for hole_node in hole_nodes {
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
-                             hole_node);
+                             node_as_tsv(&hole_node));
 
                 }
             }
         },
         Action::Cytoscape { path } => {
             let mut source = File::open(path).unwrap();
-            let model = gocam_parse(&mut source)?;
+            let model = gocam_parse_raw(&mut source)?;
 
             let elements = model_to_cytoscape(&model);
             let elements_string = serde_json::to_string(&elements).unwrap();
@@ -211,7 +279,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Action::CytoscapeSimple { path } => {
             let mut source = File::open(path).unwrap();
-            let model = make_gocam_model(&mut source)?;
+            let model = parse_gocam_model(&mut source)?;
 
             let elements = model_to_cytoscape_simple(&model);
             let elements_string = serde_json::to_string(&elements).unwrap();
@@ -221,7 +289,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::CytoscapeSimpleMerged { paths } => {
             let models: Vec<_> = paths.iter().map(|path| {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source).unwrap();
+                let model = parse_gocam_model(&mut source).unwrap();
                 model
             })
             .collect();
@@ -238,7 +306,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::CytoscapePathways { paths } => {
             let models: Vec<_> = paths.iter().map(|path| {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source).unwrap();
+                let model = parse_gocam_model(&mut source).unwrap();
                 model
             })
             .collect();
@@ -253,7 +321,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Action::GraphVizDot { path } => {
             let mut source = File::open(path).unwrap();
-            let model = make_gocam_model(&mut source)?;
+            let model = parse_gocam_model(&mut source)?;
 
             let dag_graphviz = Dot::with_attr_getters(
                 model.graph(),
@@ -276,7 +344,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = gocam_parse(&mut source)?;
+                let model = gocam_parse_raw(&mut source)?;
 
                 let model_id = model.id();
 
@@ -291,7 +359,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::Serialize { paths } => {
             let models: Vec<_> = paths.iter().map(|path| {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source).unwrap();
+                let model = parse_gocam_model(&mut source).unwrap();
                 model
             })
             .collect();
@@ -303,7 +371,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::OverlappingNodes { paths } => {
             let models: Vec<_> = paths.iter().map(|path| {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source).unwrap();
+                let model = parse_gocam_model(&mut source).unwrap();
                 model
             })
             .collect();
@@ -321,13 +389,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
 
-                println!("{}\t{}\t{}\t{}\t{}\t{}",
+                let process_label =
+                    if let Some(ref part_of_process) = overlap.part_of_process {
+                        part_of_process.label.clone().unwrap_or_default()
+                    } else {
+                        String::default()
+                    };
+
+                let occurs_in_label =
+                    if let Some(ref occurs_in) = overlap.occurs_in {
+                        occurs_in.label().to_owned()
+                    } else {
+                        String::default()
+                    };
+
+                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}",
                          overlap.node_id, overlap.node_label,
-                         // overlap.node_type,
+                         overlap.node_type,
                          // overlap.enabled_by_type,
-                         overlap.part_of_process.label.clone().unwrap_or_default(),
+                         process_label,
                          // overlap.occurs_in_id,
-                         overlap.occurs_in.label(),
+                         occurs_in_label,
                          overlap.model_titles.iter().cloned()
                             .map(|title| format!("<div>{}</div>", title)).collect::<Vec<_>>().join(""),
                          overlap.model_ids.iter().cloned().collect::<Vec<_>>().join(","));
@@ -336,7 +418,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::MakeChadoData { paths } => {
             let models: Vec<_> = paths.iter().map(|path| {
                 let mut source = File::open(path).unwrap();
-                let model = make_gocam_model(&mut source).unwrap();
+                let model = parse_gocam_model(&mut source).unwrap();
                 model
             })
             .collect();

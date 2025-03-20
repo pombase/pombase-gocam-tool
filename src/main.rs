@@ -135,6 +135,7 @@ fn node_type_summary_strings(node: &GoCamNode)
     match &node.node_type {
         GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
         GoCamNodeType::Chemical => ("chemical", "", "", ""),
+        GoCamNodeType::UnknownMRNA => ("unknown_mrna", "", "", ""),
         GoCamNodeType::Gene(_) => ("gene", "", "", ""),
         GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", ""),
         GoCamNodeType::Activity(enabled_by) => match enabled_by {

@@ -194,6 +194,18 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     ret
 }
 
+fn models_from_paths(paths: &Vec<PathBuf>)
+    -> Vec<GoCamModel>
+{
+    let models: Vec<_> = paths.iter().map(|path| {
+        let mut source = File::open(path).unwrap();
+        let model = parse_gocam_model(&mut source).unwrap();
+        model
+    }).collect();
+
+    models.into_iter().collect()
+}
+    
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -293,14 +305,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", elements_string);
         },
         Action::CytoscapeSimpleMerged { paths } => {
-            let models: Vec<_> = paths.iter().map(|path| {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source).unwrap();
-                model
-            })
-            .collect();
-
-            let models: Vec<_> = models.iter().collect();
+            let models = models_from_paths(&paths);
 
             let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
 
@@ -310,32 +315,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", elements_string);
         },
         Action::CytoscapePathways { paths } => {
-            let models: Vec<_> = paths.iter().map(|path| {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source).unwrap();
-                model
-            })
-            .collect();
+            let models = models_from_paths(&paths);
 
-            let model_refs: Vec<_> = models.iter().collect();
-
-            let elements = model_pathways_to_cytoscope(&model_refs);
+            let elements = model_pathways_to_cytoscope(&models);
 
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);
         },
         Action::CytoscapePathwaysWithRelNodes { paths } => {
-            let models: Vec<_> = paths.iter().map(|path| {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source).unwrap();
-                model
-            })
-            .collect();
+            let models = models_from_paths(&paths);
 
-            let model_refs: Vec<_> = models.iter().collect();
-
-            let elements = model_pathways_to_cytoscope_test(&model_refs);
+            let elements = model_pathways_to_cytoscope_test(&models);
 
             let elements_string = serde_json::to_string(&elements).unwrap();
 
@@ -379,26 +370,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::Serialize { paths } => {
-            let models: Vec<_> = paths.iter().map(|path| {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source).unwrap();
-                model
-            })
-            .collect();
+            let models = models_from_paths(&paths);
 
             let models_string = serde_json::to_string(&models).unwrap();
 
             print!("{}", models_string);
         },
         Action::OverlappingNodes { paths } => {
-            let models: Vec<_> = paths.iter().map(|path| {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source).unwrap();
-                model
-            })
-            .collect();
-
-            let models: Vec<_> = models.iter().collect();
+            let models = models_from_paths(&paths);
 
             let overlaps = GoCamModel::find_overlaps(&models);
 
@@ -438,14 +417,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::MakeChadoData { paths } => {
-            let models: Vec<_> = paths.iter().map(|path| {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source).unwrap();
-                model
-            })
-            .collect();
-
-            let models: Vec<_> = models.iter().collect();
+            let models = models_from_paths(&paths);
 
             let data_for_chado = make_chado_data(&models);
 

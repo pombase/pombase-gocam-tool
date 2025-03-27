@@ -316,7 +316,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut source = File::open(path).unwrap();
             let model = parse_gocam_model(&mut source)?;
 
-            let elements = model_to_cytoscape_simple(&model);
+            let elements = model_to_cytoscape_simple(&model, &vec![]);
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);
@@ -326,7 +326,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
 
-            let elements = model_to_cytoscape_simple(&merged);
+            let elements = model_to_cytoscape_simple(&merged, &vec![]);
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);

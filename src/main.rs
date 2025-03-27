@@ -381,7 +381,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let overlaps = GoCamModel::find_overlaps(&models);
 
-            println!("id\tlabel\tdescription\tenabler_id\tpart_of_process\toccurs_in\tmodel_titles\tmodel_ids");
+            println!("model_titles\tmodel_ids\tid\tlabel\tdescription\tenabler_id\tpart_of_process\toccurs_in");
 
             for overlap in &overlaps {
                 let mut model_ids = HashSet::new();
@@ -405,16 +405,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
 
                 println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                         overlap.model_titles.iter().cloned().collect::<Vec<_>>().join(","),
+                         overlap.model_ids.iter().cloned().collect::<Vec<_>>().join("+"),
                          overlap.node_id, overlap.node_label,
                          overlap.node_type,
                          overlap.enabler_id.clone().unwrap_or_default(),
                          // overlap.enabled_by_type,
                          process_label,
                          // overlap.occurs_in_id,
-                         occurs_in_label,
-                         overlap.model_titles.iter().cloned()
-                            .collect::<Vec<_>>().join(","),
-                         overlap.model_ids.iter().cloned().collect::<Vec<_>>().join("+"));
+                         occurs_in_label);
             }
         },
         Action::MakeChadoData { paths } => {

@@ -205,7 +205,7 @@ fn models_from_paths(paths: &Vec<PathBuf>)
 
     models.into_iter().collect()
 }
-    
+
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -224,22 +224,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Action::ConnectedGenes { paths } => {
+            println!("taxon\tgene");
+            let mut seen_genes = HashSet::new();
+
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = parse_gocam_model(&mut source)?;
 
-                for gene in get_connected_genes(&model, 2) {
-                    println!("{}\t{gene}", model.taxon());
+                let connected_genes_by_activity_count =
+                    get_connected_genes(&model);
+                if let Some(connected_genes) = connected_genes_by_activity_count.get(&2) {
+                    for gene in connected_genes {
+                        if seen_genes.contains(&(model.taxon().to_owned(), gene.to_owned())) {
+                            continue;
+                        } else {
+                            seen_genes.insert((model.taxon().to_owned(), gene.to_owned()));
+                        }
+                        println!("{}\t{gene}", model.taxon());
+                    }
                 }
             }
         }
         Action::AllGenes { paths } => {
+            println!("taxon\tgene");
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = parse_gocam_model(&mut source)?;
 
-                for gene in get_connected_genes(&model, 1) {
-                    println!("{}\t{gene}", model.taxon());
+                let connected_genes_by_activity_count =
+                    get_connected_genes(&model);
+                if let Some(connected_genes) = connected_genes_by_activity_count.get(&1) {
+                    for gene in connected_genes {
+                        println!("{}\t{gene}", model.taxon());
+                    }
                 }
             }
         }

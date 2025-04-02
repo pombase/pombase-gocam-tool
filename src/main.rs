@@ -56,12 +56,12 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
-    CytoscapePathways {
+    CytoscapeModelConnections {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
-    CytoscapePathwaysWithRelNodes {
+    CytoscapeModelConnectionsWithRelNodes {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -331,16 +331,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             println!("{}", elements_string);
         },
-        Action::CytoscapePathways { paths } => {
+        Action::CytoscapeModelConnections { paths } => {
             let models = models_from_paths(&paths);
 
-            let elements = model_pathways_to_cytoscope(&models);
+            let overlaps = GoCamModel::find_overlaps(&models);
+
+            let elements = model_connections_to_cytoscope(&overlaps);
 
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);
         },
-        Action::CytoscapePathwaysWithRelNodes { paths } => {
+        Action::CytoscapeModelConnectionsWithRelNodes { paths } => {
             let models = models_from_paths(&paths);
 
             let elements = model_pathways_to_cytoscope_test(&models);
@@ -401,15 +403,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("model_titles\tmodel_ids\tid\tlabel\tdescription\tenabler_id\tpart_of_process\toccurs_in");
 
             for overlap in &overlaps {
-                let mut model_ids = HashSet::new();
-                model_ids.extend(&overlap.model_ids);
-                if model_ids.len() == 1 {
+                let mut models = HashSet::new();
+                models.extend(&overlap.models);
+                if models.len() == 1 {
                     continue;
                 }
 
                 let process_label =
                     if let Some(ref part_of_process) = overlap.part_of_process {
-                        part_of_process.label.clone().unwrap_or_default()
+                        part_of_process.label.clone()
                     } else {
                         String::default()
                     };
@@ -421,9 +423,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         String::default()
                     };
 
-                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                         overlap.model_titles.iter().cloned().collect::<Vec<_>>().join(","),
-                         overlap.model_ids.iter().cloned().collect::<Vec<_>>().join("+"),
+                let (model_ids, model_titles): (Vec<_>, Vec<_>) =
+                    overlap.models.iter().cloned().unzip();
+
+                    println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                         model_titles.into_iter().collect::<Vec<_>>().join(","),
+                         model_ids.into_iter().collect::<Vec<_>>().join("+"),
                          overlap.node_id, overlap.node_label,
                          overlap.node_type,
                          overlap.enabler_id.clone().unwrap_or_default(),

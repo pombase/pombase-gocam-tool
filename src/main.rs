@@ -6,8 +6,8 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_parse_raw, parse_gocam_model,
-                    GoCamModel, GoCamNode, GoCamRawModel,
+use pombase_gocam::{raw::{gocam_parse_raw, GoCamRawModel},
+                    parse_gocam_model, GoCamModel, GoCamNode,
                     GoCamNodeType, GoCamEnabledBy};
 use pombase_gocam_process::*;
 
@@ -279,7 +279,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let model_title = model.title();
                 let model_taxon = model.taxon();
 
-                for node in model.node_iterator() {
+                for (_, node) in model.node_iterator() {
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node_as_tsv(node));
                 }
             }
@@ -434,12 +434,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let (model_ids, model_titles): (Vec<_>, Vec<_>) =
                     overlap.models.iter().cloned().unzip();
 
-                    println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                    println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                          model_titles.into_iter().collect::<Vec<_>>().join(","),
                          model_ids.into_iter().collect::<Vec<_>>().join("+"),
                          overlap.node_id, overlap.node_label,
                          overlap.node_type,
-                         overlap.enabler_id.clone().unwrap_or_default(),
                          // overlap.enabled_by_type,
                          process_label,
                          // overlap.occurs_in_id,

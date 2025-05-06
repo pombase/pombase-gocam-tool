@@ -57,6 +57,8 @@ enum Action {
     },
     #[command(arg_required_else_help = true)]
     CytoscapeModelConnections {
+        #[arg(short, long)]
+        taxon_id: Option<String>,
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -193,6 +195,15 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     }
 
     ret
+}
+
+fn filter_models_by_org(models: &[GoCamModel], taxon: &str)
+    -> Vec<GoCamModel>
+{
+    return models.iter()
+        .filter(|model| model.taxon().contains(taxon))
+        .cloned()
+        .collect()
 }
 
 fn models_from_paths(paths: &Vec<PathBuf>)
@@ -332,8 +343,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             println!("{}", elements_string);
         },
-        Action::CytoscapeModelConnections { paths } => {
-            let models = models_from_paths(&paths);
+        Action::CytoscapeModelConnections { taxon_id, paths } => {
+            let models =
+                if let Some(taxon_id) = taxon_id {
+                    let taxon_id = taxon_id.strip_prefix("NCBITaxon:").unwrap_or(&taxon_id);
+                    filter_models_by_org(&models_from_paths(&paths), taxon_id)
+                } else {
+                    models_from_paths(&paths)
+                };
 
             let overlaps = GoCamModel::find_overlaps(&models);
 

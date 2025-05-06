@@ -449,7 +449,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
 
                 let (model_ids, model_titles): (Vec<_>, Vec<_>) =
-                    overlap.models.iter().cloned().unzip();
+                    overlap.models.iter()
+                           .map(|(id, title, _)| (id.to_owned(), title.to_owned()))
+                           .unzip();
 
                     println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                          model_titles.into_iter().collect::<Vec<_>>().join(","),

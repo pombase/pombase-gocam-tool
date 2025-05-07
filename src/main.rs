@@ -183,11 +183,13 @@ fn node_as_tsv(node: &GoCamNode) -> String {
         ret.push_str(&format!("\t"));
     }
 
-    if let Some(ref occurs_in) = node.occurs_in {
-        ret.push_str(&format!("{}\t", occurs_in.label_or_id()));
-    } else {
-        ret.push_str(&format!("\t"));
-    }
+    let occurs_in_string = node.occurs_in
+        .iter()
+        .map(|occurs_in| occurs_in.id())
+        .collect::<Vec<_>>()
+        .join(",");
+    ret.push_str(&format!("{}\t", occurs_in_string));
+
     if let Some(ref located_in) = node.located_in {
         ret.push_str(&format!("{}", located_in.label_or_id()));
     } else {
@@ -434,12 +436,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         String::default()
                     };
 
-                let occurs_in_label =
-                    if let Some(ref occurs_in) = overlap.occurs_in {
-                        occurs_in.label().to_owned()
-                    } else {
-                        String::default()
-                    };
+                let occurs_in_label = overlap.occurs_in
+                    .iter()
+                    .map(|occurs_in| occurs_in.label())
+                    .collect::<Vec<_>>()
+                    .join(",");
 
                 let located_in_label =
                     if let Some(ref located_in) = overlap.located_in {

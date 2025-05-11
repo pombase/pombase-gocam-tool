@@ -52,6 +52,8 @@ enum Action {
     },
     #[command(arg_required_else_help = true)]
     CytoscapeSimpleMerged {
+        #[arg(short, long)]
+        taxon_id: Option<String>,
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -199,6 +201,11 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     ret
 }
 
+fn has_connected_genes(model: &GoCamModel) -> bool {
+    let connected_genes_by_activity_count = get_connected_genes(&model);
+    connected_genes_by_activity_count.get(&2).is_some()
+}
+
 fn filter_models_by_org(models: &[GoCamModel], taxon: &str)
     -> Vec<GoCamModel>
 {
@@ -335,9 +342,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             println!("{}", elements_string);
         },
-        Action::CytoscapeSimpleMerged { paths } => {
-            let models = models_from_paths(&paths);
-
+        Action::CytoscapeSimpleMerged { taxon_id, paths } => {
+            let models: Vec<_> =
+                if let Some(taxon_id) = taxon_id {
+                    let taxon_id = taxon_id.strip_prefix("NCBITaxon:").unwrap_or(&taxon_id);
+                    filter_models_by_org(&models_from_paths(&paths), taxon_id)
+                } else {
+                    models_from_paths(&paths)
+                }
+                .into_iter().filter(has_connected_genes).collect();
             let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
 
             let elements = model_to_cytoscape_simple(&merged, &vec![]);
@@ -346,13 +359,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", elements_string);
         },
         Action::CytoscapeModelConnections { taxon_id, paths } => {
-            let models =
+            let models: Vec<_> =
                 if let Some(taxon_id) = taxon_id {
                     let taxon_id = taxon_id.strip_prefix("NCBITaxon:").unwrap_or(&taxon_id);
                     filter_models_by_org(&models_from_paths(&paths), taxon_id)
                 } else {
                     models_from_paths(&paths)
-                };
+                }
+                .into_iter().filter(has_connected_genes).collect();
 
             let overlaps = GoCamModel::find_overlaps(&models);
 

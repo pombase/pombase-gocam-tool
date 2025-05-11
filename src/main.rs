@@ -434,7 +434,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let overlaps = GoCamModel::find_overlaps(&models);
 
-            println!("model_titles\tmodel_ids\tid\tlabel\tdescription\tenabler_id\tpart_of_process\toccurs_in\tlocated_in");
+            println!("model_titles\tmodel_ids\tid\tlabel\tdescription\tpart_of_process\toccurs_in\tlocated_in");
 
             for overlap in &overlaps {
                 let mut models = HashSet::new();
@@ -473,9 +473,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                          model_ids.into_iter().collect::<Vec<_>>().join("+"),
                          overlap.node_id, overlap.node_label,
                          overlap.node_type,
-                         // overlap.enabled_by_type,
                          process_label,
-                         // overlap.occurs_in_id,
                          occurs_in_label,
                          located_in_label);
             }

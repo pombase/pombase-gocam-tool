@@ -6,9 +6,9 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{raw::{gocam_parse_raw, GoCamRawModel},
-                    parse_gocam_model, GoCamModel, GoCamNode,
-                    GoCamNodeType, GoCamEnabledBy};
+use pombase_gocam::{gocam_py::gocam_py_parse, parse_gocam_model,
+                    raw::{gocam_parse_raw, GoCamRawModel},
+                    GoCamEnabledBy, GoCamModel, GoCamNode, GoCamNodeType};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -104,6 +104,10 @@ enum Action {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
+    #[command(arg_required_else_help = true)]
+    GocamPyParseTest {
+        paths: Vec<PathBuf>,
+    }
 }
 
 fn print_tuples(model: &GoCamRawModel) {
@@ -491,6 +495,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let chado_string = serde_json::to_string(&data_for_chado).unwrap();
 
             println!("{}", chado_string);
+        },
+        Action::GocamPyParseTest { paths } => {
+            for path in paths {
+                let mut source = File::open(path).unwrap();
+                let gocam_py_model = gocam_py_parse(&mut source)?;
+                println!("id: {}", gocam_py_model.id);
+            }
         }
     }
 

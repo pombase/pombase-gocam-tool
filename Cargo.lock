@@ -248,9 +248,9 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam"
-version = "0.68.0"
+version = "0.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "222d58dd4c6c7870473ec9df9118ed237611f18648004c8c93c36e7400fa242e"
+checksum = "42a81eaaaed02892ba0d1bbcc108b623ecf5b0ccbafcc61a6b970c537501fa78"
 dependencies = [
  "anyhow",
  "petgraph",
@@ -258,12 +258,13 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.72.0"
-source = "git+https://github.com/pombase/pombase-gocam-process.git#9eac2cb048906ae8ac0069a314c5fd25fb0e4f4e"
+version = "0.75.0"
+source = "git+https://github.com/pombase/pombase-gocam-process.git#93b1753da3bdf83f3a213ec115cf78d48e5f5f69"
 dependencies = [
  "anyhow",
  "itertools",
@@ -390,6 +391,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "siphasher"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -417,6 +431,12 @@ name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "utf8parse"

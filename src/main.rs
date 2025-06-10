@@ -359,10 +359,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", elements_string);
         },
         Action::CytoscapeModelConnections { taxon_id, paths } => {
+            let all_models = models_from_paths(&paths);
             let models: Vec<_> =
                 if let Some(taxon_id) = taxon_id {
                     let taxon_id = taxon_id.strip_prefix("NCBITaxon:").unwrap_or(&taxon_id);
-                    filter_models_by_org(&models_from_paths(&paths), taxon_id)
+                    filter_models_by_org(&all_models, taxon_id)
                 } else {
                     models_from_paths(&paths)
                 }
@@ -370,7 +371,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let overlaps = GoCamModel::find_overlaps(&models);
 
-            let elements = model_connections_to_cytoscope(&overlaps);
+            let model_ids_and_titles: Vec<_> =
+                all_models.iter()
+                .map(|model| (model.id().to_owned(), model.title().to_owned()))
+                .collect();
+            let elements = model_connections_to_cytoscope(&overlaps, &model_ids_and_titles);
 
             let elements_string = serde_json::to_string(&elements).unwrap();
 

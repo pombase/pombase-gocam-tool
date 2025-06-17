@@ -202,6 +202,10 @@ fn node_as_tsv(node: &GoCamNode) -> String {
         ret.push_str(&format!("\t"));
     }
 
+    if let Some(ref happens_during) = node.happens_during {
+        ret.push_str(&format!("{}", happens_during.label_or_id()));
+    }
+
     ret
 }
 
@@ -293,7 +297,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::PrintActivities { paths } => {
-            println!("model_id\tmodel_title\ttaxon\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in");
+            println!("model_id\tmodel_title\ttaxon\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
 
             for path in paths {
                 let mut source = File::open(path).unwrap();

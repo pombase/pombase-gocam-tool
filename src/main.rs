@@ -8,7 +8,7 @@ use petgraph::dot::{Dot, Config};
 
 use pombase_gocam::{gocam_py::gocam_py_parse, parse_gocam_model,
                     raw::{gocam_parse_raw, GoCamRawModel},
-                    GoCamEnabledBy, GoCamModel, GoCamNode, GoCamNodeType};
+                    GoCamEnabledBy, GoCamModel, GoCamNode, GoCamNodeType, RemoveType};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -31,7 +31,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
-    PrintActivities {
+    PrintNodes {
+        #[arg(long)]
+        remove_chemicals: bool,
+        #[arg(long)]
+        remove_inputs_outputs: bool,
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -296,12 +300,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print_tuples(&model);
             }
         },
-        Action::PrintActivities { paths } => {
+        Action::PrintNodes { remove_chemicals, remove_inputs_outputs, paths } => {
             println!("model_id\tmodel_title\ttaxon\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
 
             for path in paths {
                 let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source)?;
+
+                let model = {
+                    let model = parse_gocam_model(&mut source)?;
+
+                    if remove_chemicals {
+                        model.remove_nodes(RemoveType::Chemicals)
+                    } else {
+                        if remove_inputs_outputs {
+                            model.remove_nodes(RemoveType::InputsOutputs)
+                        } else {
+                            model
+                        }
+                    }
+                };
 
                 let model_id = model.id();
                 let model_title = model.title();

@@ -164,6 +164,9 @@ fn node_type_summary_strings(node: &GoCamNode)
 fn node_as_tsv(node: &GoCamNode) -> String {
     let mut ret = String::new();
 
+    ret.push_str(&node.individual_gocam_id);
+    ret.push_str("\t");
+
     ret.push_str(&format!("{}\t", node.node_id));
 
     ret.push_str(&format!("{}\t", node.label));
@@ -301,7 +304,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::PrintNodes { remove_chemicals, remove_inputs_outputs, paths } => {
-            println!("model_id\tmodel_title\ttaxon\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
+            println!("model_id\tmodel_title\ttaxon\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
 
             for path in paths {
                 let mut source = File::open(path).unwrap();

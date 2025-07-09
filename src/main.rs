@@ -297,6 +297,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Action::PrintTuples { paths } => {
+            println!("model_id\tmodel_title\ttaxon\tsubject_id\tsubject_label\tsubject_type_id\trelation\tobject_id\tobject_label\tobject_type_id");
+
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse_raw(&mut source)?;

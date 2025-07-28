@@ -314,14 +314,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let model = {
                     let model = parse_gocam_model(&mut source)?;
 
+                    let mut remove_types = HashSet::new();
+
                     if remove_chemicals {
-                        model.remove_nodes(RemoveType::Chemicals)
+                        remove_types.insert(RemoveType::Chemicals);
                     } else {
                         if remove_inputs_outputs {
-                            model.remove_nodes(RemoveType::InputsOutputs)
-                        } else {
-                            model
+                            remove_types.insert(RemoveType::Targets);
                         }
+                    }
+
+                    if remove_types.is_empty() {
+                        model
+                    } else {
+                        model.remove_nodes(remove_types)
                     }
                 };
 
@@ -367,7 +373,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut source = File::open(path).unwrap();
             let model = parse_gocam_model(&mut source)?;
 
-            let elements = model_to_cytoscape_simple(&model, &vec![]);
+            let elements = model_to_cytoscape_simple(&model, &vec![],
+                                                     GoCamCytoscapeStyle::IncludeParents);
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);
@@ -383,7 +390,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .into_iter().filter(has_connected_genes).collect();
             let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
 
-            let elements = model_to_cytoscape_simple(&merged, &vec![]);
+            let elements = model_to_cytoscape_simple(&merged, &vec![], GoCamCytoscapeStyle::IncludeParents);
             let elements_string = serde_json::to_string(&elements).unwrap();
 
             println!("{}", elements_string);

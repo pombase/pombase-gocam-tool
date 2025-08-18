@@ -142,20 +142,20 @@ fn print_tuples(model: &GoCamRawModel) {
 }
 
 fn node_type_summary_strings(node: &GoCamNode)
-     -> (&str, &str, &str, &str)
+     -> (&str, &str, &str, String)
 {
     match &node.node_type {
-        GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown"),
-        GoCamNodeType::Chemical => ("chemical", "", "", ""),
-        GoCamNodeType::UnknownMRNA => ("unknown_mrna", "", "", ""),
-        GoCamNodeType::MRNA(_) => ("mRNA", "", "", ""),
-        GoCamNodeType::Gene(_) => ("gene", "", "", ""),
-        GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", ""),
+        GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown".to_owned()),
+        GoCamNodeType::Chemical => ("chemical", "", "", "".to_owned()),
+        GoCamNodeType::UnknownMRNA => ("unknown_mrna", "", "", "".to_owned()),
+        GoCamNodeType::MRNA(_) => ("mRNA", "", "", "".to_owned()),
+        GoCamNodeType::Gene(_) => ("gene", "", "", "".to_owned()),
+        GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", "".to_owned()),
         GoCamNodeType::Activity(enabled_by) => match enabled_by {
-            GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label()),
+            GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label().to_owned()),
             GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
-            GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label()),
-            GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label()),
+            GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label().to_owned()),
+            GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label().to_owned()),
         }
     }
 }

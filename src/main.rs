@@ -89,6 +89,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    GenesEnablingActivities {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     DetachedGenes {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
@@ -293,6 +298,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     for gene in connected_genes {
                         println!("{}\t{gene}", model.taxon());
                     }
+                }
+            }
+        }
+        Action::GenesEnablingActivities { paths } => {
+            for path in paths {
+                let mut source = File::open(path).unwrap();
+                let model = parse_gocam_model(&mut source)?;
+
+                let genes = model.genes_enabling_activities();
+
+                for (gene_id, _) in &genes {
+                    println!("{gene_id}");
                 }
             }
         }

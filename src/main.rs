@@ -37,7 +37,7 @@ enum Action {
         #[arg(long)]
         remove_inputs_outputs: bool,
         #[arg(required = true)]
-        paths: Vec<PathBuf>,
+        args: Vec<String>,
     },
     #[command(arg_required_else_help = true)]
     FindHoles {
@@ -251,6 +251,18 @@ fn models_from_paths(paths: &Vec<PathBuf>)
     models.into_iter().collect()
 }
 
+fn model_from_paths(paths_string: &str)
+    -> GoCamModel
+{
+    let paths: Vec<PathBuf> = paths_string.split('+').map(PathBuf::from).collect();
+    let models = models_from_paths(&paths);
+
+    if models.len() > 1 {
+        GoCamModel::merge_models("merged", "merged models", &models).unwrap()
+    } else {
+        models.into_iter().next().unwrap()
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -326,14 +338,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print_tuples(&model);
             }
         },
-        Action::PrintNodes { remove_chemicals, remove_inputs_outputs, paths } => {
+        Action::PrintNodes { remove_chemicals, remove_inputs_outputs, args } => {
             println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
 
-            for path in paths {
-                let mut source = File::open(path).unwrap();
+            for arg in args {
 
                 let model = {
-                    let model = parse_gocam_model(&mut source)?;
+                    let model = model_from_paths(&arg);
 
                     let mut remove_types = HashSet::new();
 

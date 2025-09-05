@@ -169,6 +169,10 @@ fn node_type_summary_strings(node: &GoCamNode)
 fn node_as_tsv(node: &GoCamNode) -> String {
     let mut ret = String::new();
 
+    if let Some(ref original_model_id) = node.original_model_id {
+        ret.push_str(original_model_id);
+    }
+    ret.push_str("\t");
     ret.push_str(&node.individual_gocam_id);
     ret.push_str("\t");
 
@@ -323,7 +327,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::PrintNodes { remove_chemicals, remove_inputs_outputs, paths } => {
-            println!("model_id\tmodel_title\ttaxon\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
+            println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
 
             for path in paths {
                 let mut source = File::open(path).unwrap();
@@ -359,7 +363,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
 
         Action::FindHoles { paths } => {
-            println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
+            println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = parse_gocam_model(&mut source)?;

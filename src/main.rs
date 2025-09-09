@@ -191,14 +191,14 @@ fn node_as_tsv(node: &GoCamNode) -> String {
         ret.push_str(&format!("\t"));
     }
     let has_input_string =
-        node.has_input.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
+        node.has_input.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
     if has_input_string.len() > 0 {
         ret.push_str(&format!("{}\t", has_input_string));
     } else {
         ret.push_str(&format!("\t"));
     }
     let has_output_string =
-        node.has_output.iter().map(|l| l.label_or_id()).collect::<Vec<_>>().join(",");
+        node.has_output.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
     if has_output_string.len() > 0 {
         ret.push_str(&format!("{}\t", has_output_string));
     } else {

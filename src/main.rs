@@ -214,12 +214,21 @@ fn node_as_tsv(node: &GoCamNode) -> String {
 
     if let Some(ref located_in) = node.located_in {
         ret.push_str(&format!("{}", located_in.label_or_id()));
-    } else {
-        ret.push_str(&format!("\t"));
     }
+    ret.push_str(&format!("\t"));
 
     if let Some(ref happens_during) = node.happens_during {
         ret.push_str(&format!("{}", happens_during.label_or_id()));
+    }
+    ret.push_str(&format!("\t"));
+
+    if let GoCamNodeType::Activity(ref enabler) = node.node_type {
+        if let GoCamEnabledBy::Complex(ref complex) = enabler {
+            let parts = complex.has_part_genes.iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>().join(",");
+            ret.push_str(&parts);
+        }
     }
 
     ret
@@ -339,7 +348,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Action::PrintNodes { remove_chemicals, remove_inputs_outputs, args } => {
-            println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during");
+            println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
 
             for arg in args {
 
@@ -374,7 +383,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
 
         Action::FindHoles { paths } => {
-            println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
+            println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = parse_gocam_model(&mut source)?;

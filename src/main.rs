@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fs::File, path::PathBuf};
+use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
@@ -7,8 +7,8 @@ use serde_json;
 use petgraph::dot::{Dot, Config};
 
 use pombase_gocam::{gocam_py::gocam_py_parse, parse_gocam_model,
-                    raw::{gocam_parse_raw, GoCamRawModel},
-                    GoCamEnabledBy, GoCamModel, GoCamNode, GoCamNodeType, RemoveType};
+                    raw::{gocam_parse_raw, GoCamRawModel}, GoCamEnabledBy, GoCamModel,
+                    GoCamModelId, GoCamNode, GoCamNodeOverlap, GoCamNodeType, RemoveType};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -116,6 +116,10 @@ enum Action {
     #[command(arg_required_else_help = true)]
     GocamPyParseTest {
         paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
+    JoiningChemicals {
+        paths: Vec<PathBuf>,
     }
 }
 
@@ -156,7 +160,7 @@ fn node_type_summary_strings(node: &GoCamNode)
         GoCamNodeType::MRNA(_) => ("mRNA", "", "", "".to_owned()),
         GoCamNodeType::Gene(_) => ("gene", "", "", "".to_owned()),
         GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", "".to_owned()),
-        GoCamNodeType::Activity(enabled_by) => match enabled_by {
+        GoCamNodeType::Activity { enabler, .. } => match enabler {
             GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label().to_owned()),
             GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
             GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label().to_owned()),
@@ -190,20 +194,25 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     } else {
         ret.push_str(&format!("\t"));
     }
+
+    if let GoCamNodeType::Activity { ref inputs, ref outputs, .. } = node.node_type {
     let has_input_string =
-        node.has_input.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
+        inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
     if has_input_string.len() > 0 {
         ret.push_str(&format!("{}\t", has_input_string));
     } else {
         ret.push_str(&format!("\t"));
     }
     let has_output_string =
-        node.has_output.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
+        outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
     if has_output_string.len() > 0 {
         ret.push_str(&format!("{}\t", has_output_string));
     } else {
         ret.push_str(&format!("\t"));
     }
+} else {
+    ret.push_str(&format!("\t"));
+}
 
     let occurs_in_string = node.occurs_in
         .iter()
@@ -222,7 +231,7 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     }
     ret.push_str(&format!("\t"));
 
-    if let GoCamNodeType::Activity(ref enabler) = node.node_type {
+    if let GoCamNodeType::Activity { ref enabler, .. } = node.node_type {
         if let GoCamEnabledBy::Complex(ref complex) = enabler {
             let parts = complex.has_part_genes.iter()
                 .map(|s| s.as_str())
@@ -575,6 +584,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path).unwrap();
                 let gocam_py_model = gocam_py_parse(&mut source)?;
                 println!("id: {}", gocam_py_model.id);
+            }
+        },
+        Action::JoiningChemicals { paths } => {
+            let models = models_from_paths(&paths);
+
+            let overlaps = GoCamModel::find_overlaps(&models);
+
+            let overlaps_by_models: HashMap<BTreeSet<GoCamModelId>, GoCamNodeOverlap> = overlaps
+                .into_iter()
+                .map(|overlap| {
+                    let ids = overlap.models.iter().map(|(id,_, _)| id.to_owned()).collect();
+                    (ids, overlap)
+                })
+                .collect();
+
+            let mut chemical_groups = HashMap::new();
+
+            for model in models {
+                for (_, node) in model.node_iterator() {
+                    if node.node_type == GoCamNodeType::Chemical {
+                        println!("{}", node);
+                        let (model_id, _) = node.models.first().unwrap();
+                        chemical_groups.entry((node.node_id.clone(), node.label.clone()))
+                            .or_insert_with(BTreeSet::new)
+                            .insert(model_id.to_owned());
+                    }
+                }
+            }
+
+            for ((chem_id, chem_label), model_ids) in chemical_groups.into_iter() {
+                if model_ids.len() < 2 {
+                    continue;
+                }
+
+                if overlaps_by_models.contains_key(&model_ids) {
+                    continue;
+                }
+
+                let model_ids_string = model_ids.into_iter().collect::<Vec<_>>().join(",");
+
+                println!("{}\t{}\t{}", chem_id, chem_label, model_ids_string);
             }
         }
     }

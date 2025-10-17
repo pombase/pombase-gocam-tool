@@ -6,9 +6,7 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_py::gocam_py_parse, parse_gocam_model,
-                    raw::{gocam_parse_raw, GoCamRawModel}, GoCamEnabledBy, GoCamModel,
-                    GoCamModelId, GoCamNode, GoCamNodeOverlap, GoCamNodeType, RemoveType};
+use pombase_gocam::{gocam_py::gocam_py_parse, parse_gocam_model, raw::{gocam_parse_raw, GoCamRawModel}, GoCamActivity, GoCamEnabledBy, GoCamModel, GoCamModelId, GoCamNode, GoCamNodeOverlap, GoCamNodeType, RemoveType};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -160,7 +158,7 @@ fn node_type_summary_strings(node: &GoCamNode)
         GoCamNodeType::MRNA(_) => ("mRNA", "", "", "".to_owned()),
         GoCamNodeType::Gene(_) => ("gene", "", "", "".to_owned()),
         GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", "".to_owned()),
-        GoCamNodeType::Activity { enabler, .. } => match enabler {
+        GoCamNodeType::Activity(GoCamActivity { enabler, .. }) => match enabler {
             GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label().to_owned()),
             GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
             GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label().to_owned()),
@@ -195,7 +193,7 @@ fn node_as_tsv(node: &GoCamNode) -> String {
         ret.push_str(&format!("\t"));
     }
 
-    if let GoCamNodeType::Activity { ref inputs, ref outputs, .. } = node.node_type {
+    if let GoCamNodeType::Activity(GoCamActivity { ref inputs, ref outputs, .. }) = node.node_type {
         let has_input_string =
             inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
         if has_input_string.len() > 0 {
@@ -232,7 +230,7 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     }
     ret.push_str(&format!("\t"));
 
-    if let GoCamNodeType::Activity { ref enabler, .. } = node.node_type {
+    if let GoCamNodeType::Activity(GoCamActivity { ref enabler, .. }) = node.node_type {
         if let GoCamEnabledBy::Complex(ref complex) = enabler {
             let parts = complex.has_part_genes.iter()
                 .map(|s| s.as_str())

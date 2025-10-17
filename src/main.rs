@@ -155,7 +155,7 @@ fn node_type_summary_strings(node: &GoCamNode)
 {
     match &node.node_type {
         GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown".to_owned()),
-        GoCamNodeType::Chemical => ("chemical", "", "", "".to_owned()),
+        GoCamNodeType::Chemical(_) => ("chemical", "", "", "".to_owned()),
         GoCamNodeType::UnknownMRNA => ("unknown_mrna", "", "", "".to_owned()),
         GoCamNodeType::MRNA(_) => ("mRNA", "", "", "".to_owned()),
         GoCamNodeType::Gene(_) => ("gene", "", "", "".to_owned()),
@@ -196,23 +196,22 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     }
 
     if let GoCamNodeType::Activity { ref inputs, ref outputs, .. } = node.node_type {
-    let has_input_string =
-        inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-    if has_input_string.len() > 0 {
-        ret.push_str(&format!("{}\t", has_input_string));
-    } else {
+        let has_input_string =
+            inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
+        if has_input_string.len() > 0 {
+            ret.push_str(&has_input_string);
+        }
         ret.push_str(&format!("\t"));
-    }
-    let has_output_string =
-        outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-    if has_output_string.len() > 0 {
-        ret.push_str(&format!("{}\t", has_output_string));
-    } else {
+
+        let has_output_string =
+            outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
+        if has_output_string.len() > 0 {
+            ret.push_str(&has_output_string);
+        }
         ret.push_str(&format!("\t"));
+    } else {
+        ret.push_str(&format!("\t\t"));
     }
-} else {
-    ret.push_str(&format!("\t"));
-}
 
     let occurs_in_string = node.occurs_in
         .iter()
@@ -221,8 +220,10 @@ fn node_as_tsv(node: &GoCamNode) -> String {
         .join(",");
     ret.push_str(&format!("{}\t", occurs_in_string));
 
-    if let Some(ref located_in) = node.located_in {
-        ret.push_str(&format!("{}", located_in.label_or_id()));
+    if let GoCamNodeType::Chemical(ref chemical) = node.node_type {
+        if let Some(ref located_in) = chemical.located_in {
+            ret.push_str(located_in.label_or_id());
+        }
     }
     ret.push_str(&format!("\t"));
 
@@ -549,11 +550,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .join(",");
 
                 let located_in_label =
-                    if let Some(ref located_in) = overlap.located_in {
-                        located_in.label().to_owned()
+                    if let GoCamNodeType::Chemical(ref chemical) = overlap.node_type {
+                        if let Some(ref located_in) = chemical.located_in {
+                            located_in.label().to_owned()
+                        } else {
+                           String::default()
+                        }
                     } else {
                         String::default()
                     };
+
 
                 let (model_ids, model_titles): (Vec<_>, Vec<_>) =
                     overlap.models.iter()
@@ -603,7 +609,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             for model in models {
                 for (_, node) in model.node_iterator() {
-                    if node.node_type == GoCamNodeType::Chemical {
+                    if node.node_type.is_chemical() {
                         println!("{}", node);
                         let (model_id, _) = node.models.first().unwrap();
                         chemical_groups.entry((node.node_id.clone(), node.label.clone()))

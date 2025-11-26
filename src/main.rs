@@ -6,7 +6,11 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_py::gocam_py_parse, parse_gocam_model, raw::{gocam_parse_raw, GoCamRawModel}, GoCamActivity, GoCamEnabledBy, GoCamModel, GoCamModelId, GoCamNode, GoCamNodeOverlap, GoCamNodeType, RemoveType};
+use pombase_gocam::{gocam_py::gocam_py_parse, GoCamMergeAlgorithm,
+                    overlaps::{find_chemical_overlaps, GoCamNodeOverlap},
+                    parse_gocam_model, raw::{gocam_parse_raw, GoCamRawModel},
+                    GoCamActivity, GoCamEnabledBy, GoCamModel, GoCamModelId,
+                    GoCamNode, GoCamNodeType, RemoveType};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -275,7 +279,8 @@ fn model_from_paths(paths_string: &str)
     let models = models_from_paths(&paths);
 
     if models.len() > 1 {
-        GoCamModel::merge_models("merged", "merged models", &models).unwrap()
+        GoCamModel::merge_models("merged", "merged models", &models,
+                                 GoCamMergeAlgorithm::Activity).unwrap()
     } else {
         models.into_iter().next().unwrap()
     }
@@ -437,7 +442,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     models_from_paths(&paths)
                 }
                 .into_iter().filter(has_connected_genes).collect();
-            let merged = GoCamModel::merge_models("merged", "merged models", &models)?;
+            let merged = GoCamModel::merge_models("merged", "merged models", &models,
+                                                  GoCamMergeAlgorithm::Activity)?;
 
             let elements = model_to_cytoscape_simple(&merged, &vec![], GoCamCytoscapeStyle::IncludeParents);
             let elements_string = serde_json::to_string(&elements).unwrap();
@@ -455,7 +461,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 .into_iter().filter(has_connected_genes).collect();
 
-            let overlaps = GoCamModel::find_overlaps(&models);
+            let overlaps = find_chemical_overlaps(&models);
 
             let model_ids_and_titles: Vec<_> =
                 all_models.iter()
@@ -523,9 +529,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::OverlappingNodes { paths } => {
             let models = models_from_paths(&paths);
 
-            let overlaps = GoCamModel::find_overlaps(&models);
+            let overlaps = find_chemical_overlaps(&models);
 
-            println!("model_titles\tmodel_ids\tid\tlabel\tdescription\tpart_of_process\toccurs_in\tlocated_in");
+            println!("model_titles\tmodel_ids\tmodel_directions\tid\tlabel\tdescription\tpart_of_process\toccurs_in\tlocated_in");
 
             for overlap in &overlaps {
                 let mut models = HashSet::new();
@@ -559,14 +565,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
 
 
-                let (model_ids, model_titles): (Vec<_>, Vec<_>) =
+                let (model_ids, (model_titles, model_directions)): (Vec<_>, (Vec<_>, Vec<_>)) =
                     overlap.models.iter()
-                           .map(|(id, title, _)| (id.to_owned(), title.to_owned()))
+                           .map(|(id, title, direction)| (id.to_owned(), (title.to_owned(), direction.to_string())))
                            .unzip();
 
-                    println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                          model_titles.into_iter().collect::<Vec<_>>().join(","),
                          model_ids.into_iter().collect::<Vec<_>>().join("+"),
+                         model_directions.into_iter().collect::<Vec<_>>().join(","),
                          overlap.node_id, overlap.node_label,
                          overlap.node_type,
                          process_label,
@@ -593,7 +600,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::JoiningChemicals { paths } => {
             let models = models_from_paths(&paths);
 
-            let overlaps = GoCamModel::find_overlaps(&models);
+            let overlaps = find_chemical_overlaps(&models);
 
             let overlaps_by_models: HashMap<BTreeSet<GoCamModelId>, GoCamNodeOverlap> = overlaps
                 .into_iter()

@@ -266,11 +266,10 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam"
-version = "0.101.0"
+version = "0.103.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd3f0d95e9fa185be1e190f4c3152f2ab5f7bfb10226e3de1876c836aec569b8"
+checksum = "b581ae028a6409943207d14490bc45527e751f3fa50f9fbabc9f13254b4ced98"
 dependencies = [
- "anyhow",
  "petgraph",
  "phf",
  "regex",
@@ -278,12 +277,13 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "thiserror",
 ]
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.119.0"
-source = "git+https://github.com/pombase/pombase-gocam-process.git#bfd15e5b5c1a71532c57e6867464ab1174489b72"
+version = "0.122.0"
+source = "git+https://github.com/pombase/pombase-gocam-process.git#cce13bed71d2362fce8502bf848f74caa37ae239"
 dependencies = [
  "anyhow",
  "itertools",
@@ -443,6 +443,26 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -38,6 +38,10 @@ enum Action {
         remove_chemicals: bool,
         #[arg(long)]
         remove_inputs_outputs: bool,
+        #[arg(long)]
+        with_types: Option<String>,
+        #[arg(long)]
+        with_location: Option<bool>,
         #[arg(required = true)]
         args: Vec<String>,
     },
@@ -360,8 +364,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print_tuples(&model);
             }
         },
-        Action::PrintNodes { remove_chemicals, remove_inputs_outputs, args } => {
+        Action::PrintNodes {
+            remove_chemicals, remove_inputs_outputs, with_location, with_types, args
+        } => {
             println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
+
+            let with_types =
+                if let Some(ref with_types) = with_types {
+                    with_types.split(",").into_iter().collect::<Vec<_>>()
+                } else {
+                    vec![]
+                };
 
             for arg in args {
 
@@ -390,6 +403,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let model_taxon = model.taxon();
 
                 for (_, node) in model.node_iterator() {
+                    if !with_types.is_empty() {
+                        if !with_types.contains(&node.type_string()) {
+                            continue;
+                        }
+                    }
+
+                    if let Some(with_location) = with_location {
+                        if with_location != node.has_location() {
+                            continue;
+                        }
+                    }
+
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node_as_tsv(node));
                 }
             }

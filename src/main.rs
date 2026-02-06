@@ -528,7 +528,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", dag_graphviz);
         },
         Action::DetachedGenes { paths } => {
-//            println!("model_id\tmodel_title\ttaxon\tactivity_id\tactivity_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\ttype");
+            println!("model_id\tgene_internal_id\tgene_systematic_id\tgene_name");
 
             for path in paths {
                 let mut source = File::open(path).unwrap();

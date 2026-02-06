@@ -105,6 +105,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    DetachedChemicals {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     Serialize {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
@@ -540,7 +545,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 for (id, gene_id, gene_label) in detached_genes {
                     println!("{}\t{}\t{}\t{}", model_id, id, gene_id, gene_label);
+                }
+            }
+        },
+        Action::DetachedChemicals { paths } => {
+            println!("model_id\tmodel_title\tchebi_id\tname");
 
+            let models = models_from_paths(&paths);
+
+            for model in models {
+                let model_id = model.id();
+                let model_title = model.title();
+
+                let chemicals = find_detached_chemicals(&model);
+
+                for chemical in chemicals {
+                    println!("{}\t{}\t{}\t{}", model_id, model_title, chemical.id(), chemical.label());
                 }
             }
         },

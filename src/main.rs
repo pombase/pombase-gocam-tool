@@ -616,7 +616,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                            .unzip();
 
                 println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                         model_titles.into_iter().collect::<Vec<_>>().join(","),
+                         model_titles.into_iter().collect::<Vec<_>>().join("|"),
                          model_ids.into_iter().collect::<Vec<_>>().join("+"),
                          model_directions.into_iter().collect::<Vec<_>>().join(","),
                          overlap.node_id, overlap.node_label,

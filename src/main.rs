@@ -6,11 +6,12 @@ use serde_json;
 
 use petgraph::dot::{Dot, Config};
 
-use pombase_gocam::{gocam_py::gocam_py_parse, GoCamMergeAlgorithm,
-                    overlaps::{find_chemical_overlaps, GoCamNodeOverlap},
-                    parse_gocam_model, raw::{gocam_parse_raw, GoCamRawModel},
-                    GoCamActivity, GoCamEnabledBy, GoCamModel, GoCamModelId,
-                    GoCamNode, GoCamNodeType, RemoveType};
+use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
+                    GoCamModel, GoCamModelId, GoCamNode, GoCamNodeType,
+                    RemoveType, gocam_py::gocam_py_parse,
+                    overlaps::{GoCamNodeOverlap, find_chemical_overlaps},
+                    parse_gocam_py_model, parse_raw_gocam_model,
+                    raw::{GoCamRawModel, gocam_parse_raw}};
 use pombase_gocam_process::*;
 
 #[derive(Parser)]
@@ -256,7 +257,7 @@ fn node_as_tsv(node: &GoCamNode) -> String {
 }
 
 fn has_connected_genes(model: &GoCamModel) -> bool {
-    let connected_genes_by_activity_count = get_connected_genes(&model);
+    let connected_genes_by_activity_count = get_connected_genes(model);
     connected_genes_by_activity_count.get(&2).is_some()
 }
 
@@ -269,16 +270,19 @@ fn filter_models_by_org(models: &[GoCamModel], taxon: &str)
         .collect()
 }
 
+fn model_from_path(path: &PathBuf) -> GoCamModel {
+    let mut source = File::open(path).unwrap();
+    if path.extension().unwrap() == "json" {
+        parse_raw_gocam_model(&mut source).unwrap()
+    } else {
+        parse_gocam_py_model(&mut source).unwrap()
+    }
+}
+
 fn models_from_paths(paths: &Vec<PathBuf>)
     -> Vec<GoCamModel>
 {
-    let models: Vec<_> = paths.iter().map(|path| {
-        let mut source = File::open(path).unwrap();
-        let model = parse_gocam_model(&mut source).unwrap();
-        model
-    }).collect();
-
-    models.into_iter().collect()
+    paths.iter().map(model_from_path).collect()
 }
 
 fn model_from_paths(paths_string: &str)
@@ -301,8 +305,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match args.action {
         Action::Stats { paths } => {
             for path in paths {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source)?;
+                let model = model_from_path(&path);
 
                 let stats = get_stats(&model);
 
@@ -316,8 +319,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut seen_genes = HashSet::new();
 
             for path in paths {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source)?;
+                let model = model_from_path(&path);
 
                 let connected_genes_by_activity_count =
                     get_connected_genes(&model);
@@ -336,8 +338,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::AllGenes { paths } => {
             println!("taxon\tgene");
             for path in paths {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source)?;
+                let model = model_from_path(&path);
 
                 let connected_genes_by_activity_count =
                     get_connected_genes(&model);
@@ -350,8 +351,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Action::GenesEnablingActivities { paths } => {
             for path in paths {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source)?;
+                let model = model_from_path(&path);
 
                 let genes = model.genes_enabling_activities();
 
@@ -428,8 +428,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::FindHoles { paths } => {
             println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
             for path in paths {
-                let mut source = File::open(path).unwrap();
-                let model = parse_gocam_model(&mut source)?;
+                let model = model_from_path(&path);
 
                 let model_id = model.id();
                 let model_title = model.title();
@@ -454,8 +453,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", elements_string);
         }
         Action::CytoscapeSimple { path } => {
-            let mut source = File::open(path).unwrap();
-            let model = parse_gocam_model(&mut source)?;
+            let model = model_from_path(&path);
 
             let elements = model_to_cytoscape_simple(&model, &vec![],
                                                      GoCamCytoscapeStyle::IncludeParents);
@@ -513,8 +511,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", elements_string);
         },
         Action::GraphVizDot { path } => {
-            let mut source = File::open(path).unwrap();
-            let model = parse_gocam_model(&mut source)?;
+            let model = model_from_path(&path);
 
             let dag_graphviz = Dot::with_attr_getters(
                 model.graph(),

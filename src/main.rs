@@ -2,8 +2,6 @@ use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
-use serde_json;
-
 use petgraph::dot::{Dot, Config};
 
 use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
@@ -140,11 +138,11 @@ fn print_tuples(model: &GoCamRawModel) {
     for fact in model.facts() {
         let subject = model.fact_subject(fact);
         let object = model.fact_object(fact);
-        let Some(subject_type) = subject.types.get(0)
+        let Some(subject_type) = subject.types.first()
         else {
             continue;
         };
-        let Some(object_type) = object.types.get(0)
+        let Some(object_type) = object.types.first()
         else {
             continue;
         };
@@ -188,9 +186,9 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     if let Some(ref original_model_id) = node.original_model_id {
         ret.push_str(original_model_id);
     }
-    ret.push_str("\t");
+    ret.push('\t');
     ret.push_str(&node.individual_gocam_id);
-    ret.push_str("\t");
+    ret.push('\t');
 
     ret.push_str(&format!("{}\t", node.node_id));
 
@@ -204,25 +202,25 @@ fn node_as_tsv(node: &GoCamNode) -> String {
     if let Some(ref part_of_process) = node.part_of_process {
         ret.push_str(&format!("{}\t", part_of_process.label_or_id()));
     } else {
-        ret.push_str(&format!("\t"));
+        ret.push('\t');
     }
 
     if let GoCamNodeType::Activity(GoCamActivity { ref inputs, ref outputs, .. }) = node.node_type {
         let has_input_string =
             inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-        if has_input_string.len() > 0 {
+        if !has_input_string.is_empty() {
             ret.push_str(&has_input_string);
         }
-        ret.push_str(&format!("\t"));
+        ret.push('\t');
 
         let has_output_string =
             outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-        if has_output_string.len() > 0 {
+        if has_output_string.is_empty() {
             ret.push_str(&has_output_string);
         }
-        ret.push_str(&format!("\t"));
+        ret.push('\t');
     } else {
-        ret.push_str(&format!("\t\t"));
+        ret.push_str("\t\t");
     }
 
     let occurs_in_string = node.occurs_in
@@ -237,20 +235,20 @@ fn node_as_tsv(node: &GoCamNode) -> String {
             ret.push_str(located_in.label_or_id());
         }
     }
-    ret.push_str(&format!("\t"));
+    ret.push('\t');
 
     if let Some(ref happens_during) = node.happens_during {
-        ret.push_str(&format!("{}", happens_during.label_or_id()));
+        ret.push_str(happens_during.label_or_id());
     }
-    ret.push_str(&format!("\t"));
+    ret.push('\t');
 
-    if let GoCamNodeType::Activity(GoCamActivity { ref enabler, .. }) = node.node_type {
-        if let GoCamEnabledBy::Complex(ref complex) = enabler {
-            let parts = complex.has_part_genes.iter()
-                .map(|s| s.as_str())
-                .collect::<Vec<_>>().join(",");
-            ret.push_str(&parts);
-        }
+    if let GoCamNodeType::Activity(GoCamActivity {
+        enabler: GoCamEnabledBy::Complex(ref complex), ..
+    }) = node.node_type {
+        let parts = complex.has_part_genes.iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>().join(",");
+        ret.push_str(&parts);
     }
 
     ret
@@ -258,13 +256,13 @@ fn node_as_tsv(node: &GoCamNode) -> String {
 
 fn has_connected_genes(model: &GoCamModel) -> bool {
     let connected_genes_by_activity_count = get_connected_genes(model);
-    connected_genes_by_activity_count.get(&2).is_some()
+    connected_genes_by_activity_count.contains_key(&2)
 }
 
 fn filter_models_by_org(models: &[GoCamModel], taxon: &str)
     -> Vec<GoCamModel>
 {
-    return models.iter()
+    models.iter()
         .filter(|model| model.taxon().contains(taxon))
         .cloned()
         .collect()
@@ -279,7 +277,7 @@ fn model_from_path(path: &PathBuf) -> GoCamModel {
     }
 }
 
-fn models_from_paths(paths: &Vec<PathBuf>)
+fn models_from_paths(paths: &[PathBuf])
     -> Vec<GoCamModel>
 {
     paths.iter().map(model_from_path).collect()
@@ -355,7 +353,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let genes = model.genes_enabling_activities();
 
-                for (gene_id, _) in &genes {
+                for gene_id in genes.keys() {
                     println!("{gene_id}");
                 }
             }
@@ -376,7 +374,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let with_types =
                 if let Some(ref with_types) = with_types {
-                    with_types.split(",").into_iter().collect::<Vec<_>>()
+                    with_types.split(",").collect::<Vec<_>>()
                 } else {
                     vec![]
                 };
@@ -390,10 +388,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     if remove_chemicals {
                         remove_types.insert(RemoveType::Chemicals);
-                    } else {
-                        if remove_inputs_outputs {
-                            remove_types.insert(RemoveType::Targets);
-                        }
+                    } else if remove_inputs_outputs {
+                        remove_types.insert(RemoveType::Targets);
                     }
 
                     if remove_types.is_empty() {
@@ -408,11 +404,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let model_taxon = model.taxon();
 
                 for (_, node) in model.node_iterator() {
-                    if !with_types.is_empty() {
-                        if !with_types.contains(&node.type_string()) {
+                    if !with_types.is_empty()
+                        && !with_types.contains(&node.type_string()) {
                             continue;
                         }
-                    }
 
                     if let Some(with_location) = with_location {
                         if with_location != node.has_location() {
@@ -519,7 +514,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &|_, edge| format!("label = \"{}\"", edge.weight().label),
                 &|_, (_, node)| {
                     let enabler_label = node.enabler_label();
-                    if enabler_label.len() > 0 {
+                    if !enabler_label.is_empty() {
                         format!("label = \"{}\"", enabler_label)
                     } else {
                         format!("label = \"{}\"", node.label)

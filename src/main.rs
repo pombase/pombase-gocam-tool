@@ -45,6 +45,11 @@ enum Action {
         args: Vec<String>,
     },
     #[command(arg_required_else_help = true)]
+    PrintEdges {
+        #[arg(required = true)]
+        args: Vec<String>,
+    },
+    #[command(arg_required_else_help = true)]
     FindHoles {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
@@ -180,7 +185,7 @@ fn node_type_summary_strings(node: &GoCamNode)
 }
 
 
-fn node_as_tsv(node: &GoCamNode) -> String {
+fn node_as_tsv(node: &GoCamNode, include_inputs_outputs: bool) -> String {
     let mut ret = String::new();
 
     if let Some(ref original_model_id) = node.original_model_id {
@@ -205,22 +210,25 @@ fn node_as_tsv(node: &GoCamNode) -> String {
         ret.push('\t');
     }
 
-    if let GoCamNodeType::Activity(GoCamActivity { ref inputs, ref outputs, .. }) = node.node_type {
-        let has_input_string =
-            inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-        if !has_input_string.is_empty() {
-            ret.push_str(&has_input_string);
-        }
-        ret.push('\t');
+    if include_inputs_outputs {
 
-        let has_output_string =
-            outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-        if has_output_string.is_empty() {
-            ret.push_str(&has_output_string);
+        if let GoCamNodeType::Activity(GoCamActivity { ref inputs, ref outputs, .. }) = node.node_type {
+            let has_input_string =
+                inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
+            if !has_input_string.is_empty() {
+                ret.push_str(&has_input_string);
+            }
+            ret.push('\t');
+
+            let has_output_string =
+                outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
+            if has_output_string.is_empty() {
+                ret.push_str(&has_output_string);
+            }
+            ret.push('\t');
+        } else {
+            ret.push_str("\t\t");
         }
-        ret.push('\t');
-    } else {
-        ret.push_str("\t\t");
     }
 
     let occurs_in_string = node.occurs_in
@@ -294,6 +302,22 @@ fn model_from_paths(paths_string: &str)
                                  GoCamMergeAlgorithm::Activity).unwrap()
     } else {
         models.into_iter().next().unwrap()
+    }
+}
+
+fn print_edges(model: &GoCamModel) {
+    let model_id = model.id();
+    let model_title = model.title();
+    let model_taxon = model.taxon();
+
+    for (_, source_idx, edge, target_idx) in model.edge_iterator() {
+        let subject_node = model.graph().node_weight(source_idx).unwrap();
+        let target_node = model.graph().node_weight(target_idx).unwrap();
+
+        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
+                 node_as_tsv(subject_node, false),
+                 edge.id, edge.label,
+                 node_as_tsv(target_node, false));
     }
 }
 
@@ -415,10 +439,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
 
-                    println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon, node_as_tsv(node));
+                    println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
+                             node_as_tsv(node, true));
                 }
             }
         },
+
+        Action::PrintEdges { args } => {
+            println!("model_id\tmodel_title\ttaxon\tsubject_original_model_id\tsubject_individual_gocam_id\tsubject_node_id\tsubject_node_label\tsubject_node_type\tsubject_enabled_by_type\tsubject_enabled_by_id\tsubject_enabled_by_label\tsubject_process\tsubject_occurs_in\tsubject_located_in\tsubject_happens_during\tsubject_parts\tedge_id\tedge_label\ttarget_original_model_id\ttarget_individual_gocam_id\ttarget_node_id\ttarget_node_label\ttarget_node_type\ttarget_enabled_by_type\ttarget_enabled_by_id\ttarget_enabled_by_label\ttarget_process\ttarget_occurs_in\ttarget_located_in\ttarget_happens_during\ttarget_parts");
+
+            for arg in args {
+
+                let model = model_from_paths(&arg);
+
+                print_edges(&model);
+            }
+        }
 
         Action::FindHoles { paths } => {
             println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
@@ -433,7 +469,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 for hole_node in hole_nodes {
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
-                             node_as_tsv(&hole_node));
+                             node_as_tsv(&hole_node, true));
 
                 }
             }

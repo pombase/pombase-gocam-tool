@@ -1,7 +1,9 @@
 [package]
 name = "pombase-gocam-tool"
 version = "0.56.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.94"
+resolver = "3"
 
 [dependencies]
 pombase-gocam-process = { git = "https://github.com/pombase/pombase-gocam-process.git", version = "0.129.0" }

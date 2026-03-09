@@ -139,7 +139,6 @@ enum Action {
 }
 
 fn print_tuples(model: &GoCamRawModel) {
-    let empty = &"".to_owned();
     for fact in model.facts() {
         let subject = model.fact_subject(fact);
         let object = model.fact_object(fact);
@@ -156,11 +155,11 @@ fn print_tuples(model: &GoCamRawModel) {
         model.title(),
         model.taxon(),
         subject.id,
-        subject_type.label.as_ref().unwrap_or(empty),
+        subject_type.label.as_deref().unwrap_or(""),
         subject_type.id.as_ref().unwrap_or(&subject_type.type_string),
         fact.property_label,
         object.id,
-        object_type.label.as_ref().unwrap_or(empty),
+        object_type.label.as_deref().unwrap_or(""),
         object_type.id.as_ref().unwrap_or(&object_type.type_string));
     }
 }

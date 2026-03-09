@@ -237,11 +237,10 @@ fn node_as_tsv(node: &GoCamNode, include_inputs_outputs: bool) -> String {
         .join(",");
     ret.push_str(&format!("{}\t", occurs_in_string));
 
-    if let GoCamNodeType::Chemical(ref chemical) = node.node_type {
-        if let Some(ref located_in) = chemical.located_in {
+    if let GoCamNodeType::Chemical(ref chemical) = node.node_type &&
+        let Some(ref located_in) = chemical.located_in {
             ret.push_str(located_in.label_or_id());
         }
-    }
     ret.push('\t');
 
     if let Some(ref happens_during) = node.happens_during {
@@ -432,11 +431,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             continue;
                         }
 
-                    if let Some(with_location) = with_location {
-                        if with_location != node.has_location() {
+                    if let Some(with_location) = with_location &&
+                        with_location != node.has_location() {
                             continue;
                         }
-                    }
 
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
                              node_as_tsv(node, true));

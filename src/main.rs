@@ -1,4 +1,4 @@
-use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, path::PathBuf};
+use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, path::PathBuf, process::exit};
 
 use clap::{Parser, Subcommand};
 
@@ -6,7 +6,7 @@ use petgraph::dot::{Dot, Config};
 
 use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
                     GoCamModel, GoCamModelId, GoCamNode, GoCamNodeType,
-                    RemoveType, gocam_py::gocam_py_parse,
+                    RemoveType, gocam_py::{GoCamPyModel, gocam_py_parse},
                     overlaps::{GoCamNodeOverlap, find_chemical_overlaps},
                     parse_gocam_py_model, parse_raw_gocam_model,
                     raw::{GoCamRawModel, gocam_parse_raw}};
@@ -134,6 +134,12 @@ enum Action {
     },
     #[command(arg_required_else_help = true)]
     JoiningChemicals {
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
+    FindMissingEvidence {
+        #[arg(long)]
+        missing_type: String,
         paths: Vec<PathBuf>,
     }
 }
@@ -316,6 +322,21 @@ fn print_edges(model: &GoCamModel) {
                  node_as_tsv(subject_node, false),
                  edge.id, edge.label,
                  node_as_tsv(target_node, false));
+    }
+}
+
+fn print_missing_evidence(model: &GoCamPyModel, missing_evidence: &[GoCamMissingEvidence]) {
+    for missing in missing_evidence {
+        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                 model.id,
+                 missing.enabler_id,
+                 missing.enabler_label.as_deref().unwrap_or(""),
+                 missing.mf_term_id,
+                 missing.mf_term_name.as_deref().unwrap_or(""),
+                 missing.part_of_term_id.as_deref().unwrap_or(""),
+                 missing.part_of_term_name.as_deref().unwrap_or(""),
+                 missing.occurs_in_term_id.as_deref().unwrap_or(""),
+                 missing.occurs_in_term_name.as_deref().unwrap_or(""))
     }
 }
 
@@ -707,7 +728,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("{}\t{}\t{}", chem_id, chem_label, model_ids_string);
             }
-        }
+        },
+        Action::FindMissingEvidence { missing_type: missing_type_arg, paths } => {
+            let missing_type = match missing_type_arg.as_str() {
+                "mf"|"molecular_function" => {
+                    GoCamMissingEvidenceType::MolecularFunction
+                },
+                "bp"|"biological_process" => {
+                    GoCamMissingEvidenceType::BiologicalProcess
+                },
+                "cc"|"cellular_component" => {
+                    GoCamMissingEvidenceType::CellularComponent
+                },
+                _ => {
+                    eprintln!("unknown aspect passed to --missing-type: try 'mf', 'bp' or 'cc'");
+                    exit(1);
+                }
+            };
+            println!("model_id\tenabler_id\tenabler_label\tterm_id\tterm_name\tactivity_id");
+            for path in paths {
+                let mut source = File::open(path)?;
+                let gocam_py_model = gocam_py_parse(&mut source)?;
+                let missing = find_missing_evidence(missing_type, &gocam_py_model);
+                print_missing_evidence(&gocam_py_model, &missing);
+            }
+
+        },
     }
 
     Ok(())

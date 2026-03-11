@@ -327,8 +327,9 @@ fn print_edges(model: &GoCamModel) {
 
 fn print_missing_evidence(model: &GoCamPyModel, missing_evidence: &[GoCamMissingEvidence]) {
     for missing in missing_evidence {
-        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                  model.id,
+                 model.title,
                  missing.enabler_id,
                  missing.enabler_label.as_deref().unwrap_or(""),
                  missing.mf_term_id,
@@ -745,7 +746,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     exit(1);
                 }
             };
-            println!("model_id\tenabler_id\tenabler_label\tterm_id\tterm_name\tactivity_id");
+            println!("model_id\tmodel_title\t\
+                      enabler_id\tenabler_label\t\
+                      activity_term_id\tactivity_term_name\t\
+                      part_of_term_id\tpart_of_term_name\t\
+                      occurs_id_term_id\toccurs_id_term_name");
             for path in paths {
                 let mut source = File::open(path)?;
                 let gocam_py_model = gocam_py_parse(&mut source)?;

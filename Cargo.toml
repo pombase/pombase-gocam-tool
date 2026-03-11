@@ -13,3 +13,23 @@ serde_derive = "1.0"
 serde_json = "1.0"
 serde = "1.0"
 petgraph = "0.8"
+
+[profile.dev]
+opt-level = 0
+debug = true
+incremental = true
+lto = "off"
+
+[profile.releasedev]
+inherits = "release"
+opt-level = 1
+debug = true
+codegen-units = 256
+incremental = true
+lto = "off"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = true
+lto = true

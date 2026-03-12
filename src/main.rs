@@ -218,16 +218,16 @@ fn node_as_tsv(node: &GoCamNode, include_inputs_outputs: bool) -> String {
     if include_inputs_outputs {
 
         if let GoCamNodeType::Activity(GoCamActivity { ref inputs, ref outputs, .. }) = node.node_type {
-            let has_input_string =
-                inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-            if !has_input_string.is_empty() {
+            if !inputs.is_empty() {
+                let has_input_string =
+                    inputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
                 ret.push_str(&has_input_string);
             }
             ret.push('\t');
 
-            let has_output_string =
-                outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
-            if has_output_string.is_empty() {
+            if !outputs.is_empty() {
+                let has_output_string =
+                    outputs.iter().map(|l| l.to_string()).collect::<Vec<_>>().join(",");
                 ret.push_str(&has_output_string);
             }
             ret.push('\t');

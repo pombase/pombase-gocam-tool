@@ -6,7 +6,7 @@ rust-version = "1.94"
 resolver = "3"
 
 [dependencies]
-pombase-gocam-process = { git = "https://github.com/pombase/pombase-gocam-process.git", version = "0.135.0" }
+pombase-gocam-process = { git = "https://github.com/pombase/pombase-gocam-process.git", version = "0.136.0" }
 pombase-gocam = "0.114.0"
 clap = { version = "4.5.30", features = ["derive"] }
 serde_derive = "1.0"

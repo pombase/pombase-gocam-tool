@@ -137,11 +137,19 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    /// Find MF, BP or CC with missing evidence
     FindMissingEvidence {
         #[arg(long)]
         missing_type: String,
         paths: Vec<PathBuf>,
-    }
+    },
+    #[command(arg_required_else_help = true)]
+    /// Find missing BP or CC
+    FindMissing {
+        #[arg(long)]
+        missing_type: String,
+        paths: Vec<PathBuf>,
+    },
 }
 
 fn print_tuples(model: &GoCamRawModel) {
@@ -325,7 +333,7 @@ fn print_edges(model: &GoCamModel) {
     }
 }
 
-fn print_missing_evidence(model: &GoCamPyModel, missing_evidence: &[GoCamMissingEvidence]) {
+fn print_missing(model: &GoCamPyModel, missing_evidence: &[GoCamMissing]) {
     for missing in missing_evidence {
         println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                  model.id,
@@ -733,13 +741,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::FindMissingEvidence { missing_type: missing_type_arg, paths } => {
             let missing_type = match missing_type_arg.as_str() {
                 "mf"|"molecular_function" => {
-                    GoCamMissingEvidenceType::MolecularFunction
+                    GoCamMissingType::MolecularFunction
                 },
                 "bp"|"biological_process" => {
-                    GoCamMissingEvidenceType::BiologicalProcess
+                    GoCamMissingType::BiologicalProcess
                 },
                 "cc"|"cellular_component" => {
-                    GoCamMissingEvidenceType::CellularComponent
+                    GoCamMissingType::CellularComponent
                 },
                 _ => {
                     eprintln!("unknown aspect passed to --missing-type: try 'mf', 'bp' or 'cc'");
@@ -755,9 +763,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path)?;
                 let gocam_py_model = gocam_py_parse(&mut source)?;
                 let missing = find_missing_evidence(missing_type, &gocam_py_model);
-                print_missing_evidence(&gocam_py_model, &missing);
+                print_missing(&gocam_py_model, &missing);
             }
-
+        },
+        Action::FindMissing { missing_type: missing_type_arg, paths } => {
+            let missing_type = match missing_type_arg.as_str() {
+                "bp"|"biological_process" => {
+                    GoCamMissingType::BiologicalProcess
+                },
+                "cc"|"cellular_component" => {
+                    GoCamMissingType::CellularComponent
+                },
+                _ => {
+                    eprintln!("unknown aspect passed to --missing-type: try 'bp' or 'cc'");
+                    exit(1);
+                }
+            };
+            println!("model_id\tmodel_title\t\
+                      enabler_id\tenabler_label\t\
+                      activity_term_id\tactivity_term_name\t\
+                      part_of_term_id\tpart_of_term_name\t\
+                      occurs_id_term_id\toccurs_id_term_name");
+            for path in paths {
+                let mut source = File::open(path)?;
+                let gocam_py_model = gocam_py_parse(&mut source)?;
+                let missing = find_missing(missing_type, &gocam_py_model);
+                print_missing(&gocam_py_model, &missing);
+            }
         },
     }
 

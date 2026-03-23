@@ -187,6 +187,7 @@ fn node_type_summary_strings(node: &GoCamNode)
         GoCamNodeType::UnknownMRNA => ("unknown_mrna", "", "", "".to_owned()),
         GoCamNodeType::MRNA(_) => ("mRNA", "", "", "".to_owned()),
         GoCamNodeType::Gene(_) => ("gene", "", "", "".to_owned()),
+        GoCamNodeType::Complex(_) => ("complex", "", "", "".to_owned()),
         GoCamNodeType::ModifiedProtein(_) => ("modified_protein", "", "", "".to_owned()),
         GoCamNodeType::Activity(GoCamActivity { enabler, .. }) => match enabler {
             GoCamEnabledBy::Chemical(chem) => ("activity", "chemical", chem.id(), chem.label().to_owned()),

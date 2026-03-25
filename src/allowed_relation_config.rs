@@ -4,8 +4,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AllowedRelConfigError {
-    #[error("unknown relation name")]
-    UnknownRelationNameError { detail: String },
     #[error("I/O error: {0}")]
     IOError(#[from] std::io::Error),
 }
@@ -39,6 +37,11 @@ pub(crate) fn parse_allowed_relations_config(buf_reader: &mut dyn BufRead)
 
         let bits: Vec<_> = line.split("\t").collect();
 
+        if bits.len() < 3 {
+            eprintln!("not enough fields in allowed relation config line: {}", line);
+            continue;
+        }
+
         let term_id = bits[0];
 
         if term_id == "term" {
@@ -49,13 +52,15 @@ pub(crate) fn parse_allowed_relations_config(buf_reader: &mut dyn BufRead)
         let allowed_rel_names = bits[2].to_owned();
 
         for allowed_rel_name in allowed_rel_names.split("|") {
+            let allowed_rel_name = allowed_rel_name.trim();
+            if allowed_rel_name.is_empty() {
+                eprintln!("missing relation name in allowed relation config: {}", line);
+                continue;
+            }
             let Some(rel_id) = rel_ids_by_name.get(&allowed_rel_name.replace("_", " "))
             else {
-                let detail = format!("unknown relation name: {}", allowed_rel_name);
-                return Err(AllowedRelConfigError::UnknownRelationNameError {
-                    detail
-                });
-
+                eprintln!("unknown relation name in allowed relation config: {}", allowed_rel_name);
+                continue;
             };
             term_config.entry(term_id.to_owned())
                 .or_insert_with(HashSet::new)

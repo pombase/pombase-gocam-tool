@@ -47,6 +47,7 @@ pub(crate) fn check_relations(model: &GoCamModel,
     ret
 }
 
+#[cfg(test)]
 mod tests {
     use std::io::BufReader;
     use std::fs::File;

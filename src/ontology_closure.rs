@@ -54,6 +54,7 @@ impl OntologyClosure {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use std::io::BufReader;
     use std::fs::File;

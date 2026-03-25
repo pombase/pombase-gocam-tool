@@ -68,6 +68,7 @@ pub(crate) fn parse_allowed_relations_config(buf_reader: &mut dyn BufRead)
     })
 }
 
+#[cfg(test)]
 mod tests {
     use std::collections::HashSet;
     use std::io::BufReader;

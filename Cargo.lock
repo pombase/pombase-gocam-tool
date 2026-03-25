@@ -299,6 +299,7 @@ name = "pombase-gocam-tool"
 version = "0.71.0"
 dependencies = [
  "clap",
+ "itertools",
  "petgraph",
  "pombase-gocam",
  "pombase-gocam-process",

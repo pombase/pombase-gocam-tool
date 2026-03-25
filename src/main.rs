@@ -1,9 +1,9 @@
-use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, path::PathBuf, process::exit};
+use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, io::BufRead, path::PathBuf, process::exit};
 
 use std::io::BufReader;
 
 use clap::{Parser, Subcommand};
-
+use itertools::Itertools;
 use petgraph::dot::{Dot, Config};
 
 use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
@@ -164,9 +164,27 @@ enum Action {
         #[arg(long)]
         closure_file: PathBuf,
         #[arg(long)]
+        orcid_map_file: PathBuf,
+        #[arg(long)]
         allowed_relations_config_file: PathBuf,
         paths: Vec<PathBuf>,
     },
+}
+
+fn parse_orcid_map(path: &PathBuf) -> Result<HashMap<String, String>, std::io::Error> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let mut ret = HashMap::new();
+
+    for line_result in reader.lines() {
+        let line = line_result?;
+        let bits: Vec<_> = line.split("\t").collect();
+        ret.insert(bits[0].to_owned(), bits[1].to_owned());
+        ret.insert(format!("https://orcid.org/{}", bits[0]), bits[1].to_owned());
+    }
+
+    Ok(ret)
 }
 
 fn print_tuples(model: &GoCamRawModel) {
@@ -809,20 +827,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print_missing(&gocam_py_model, &missing);
             }
         },
-        Action::CheckAllowedRelations { closure_file, allowed_relations_config_file, paths } => {
+        Action::CheckAllowedRelations { closure_file, orcid_map_file,
+                                        allowed_relations_config_file, paths } => {
             let closure_file = File::open(closure_file)?;
             let mut closure_reader = BufReader::new(closure_file);
             let ontology_closure = parse_closure(&mut closure_reader)?;
+
             let allowed_relations_config_file = File::open(allowed_relations_config_file)?;
             let mut config_reader = BufReader::new(allowed_relations_config_file);
             let config = parse_allowed_relations_config(&mut config_reader)?;
+
+            let orcid_map = parse_orcid_map(&orcid_map_file)?;
+
             for path in paths {
                 let model = model_from_path(&path);
 
                 let warnings = check_relations(&model, &config, &ontology_closure);
 
+                let contributors = model.contributors().iter()
+                   .map(|orcid| if let Some(name) = orcid_map.get(orcid) {
+                       name.to_owned()
+                   } else {
+                       orcid.clone()
+                   })
+                   .join(",");
+
                 for warning in warnings {
-                    println!("{}: {}", model.id(), warning);
+                    println!("{} ({}): {}", model.id(), contributors, warning);
                 }
             }
         },

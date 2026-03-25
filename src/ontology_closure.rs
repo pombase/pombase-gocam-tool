@@ -22,6 +22,8 @@ pub(crate) fn parse_closure(buf_reader: &mut dyn BufRead)
 {
     let mut term_parents = HashMap::new();
 
+    let mut all_term_ids = HashSet::new();
+
     for line_result in buf_reader.lines() {
         let line = line_result?;
 
@@ -35,12 +37,20 @@ pub(crate) fn parse_closure(buf_reader: &mut dyn BufRead)
         }
 
         let subject = bits[0];
+        all_term_ids.insert(subject.to_owned());
         let rel = bits[1].to_owned();
         let object = bits[2];
+        all_term_ids.insert(object.to_owned());
 
         term_parents.entry(subject.to_owned())
             .or_insert_with(HashSet::new)
             .insert((rel, object.to_owned()));
+    }
+
+    for term_id in all_term_ids.into_iter() {
+        term_parents.entry(term_id.clone())
+            .or_insert_with(HashSet::new)
+            .insert(("rdfs:subClassOf".to_owned(), term_id));
     }
 
     Ok(OntologyClosure {

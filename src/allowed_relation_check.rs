@@ -32,7 +32,6 @@ pub(crate) fn check_relations(model: &GoCamModel,
 
             let Some(allowed_term_rels) = config.term_config().get(parent_term_id.as_str())
             else {
-                ret.push(format!("no rels for {} ({})", parent_term_id, subject_term_id));
                 continue;
             };
 

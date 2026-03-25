@@ -1,0 +1,4 @@
+term	term_name	allowed_relations	descendents	notes
+GO:0048018	receptor ligand activity	directly positively regulates	ALL	
+GO:0038023	signaling receptor activity	directly positively regulates	ALL	
+GO:0003824	catalytic activity	directly positively regulates|constitutively_upstream_of|provides input for|indirectly negatively regulates	ALL

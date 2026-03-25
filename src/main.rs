@@ -1,5 +1,7 @@
 use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, path::PathBuf, process::exit};
 
+use std::io::BufReader;
+
 use clap::{Parser, Subcommand};
 
 use petgraph::dot::{Dot, Config};
@@ -11,6 +13,14 @@ use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
                     parse_gocam_py_model, parse_raw_gocam_model,
                     raw::{GoCamRawModel, gocam_parse_raw}};
 use pombase_gocam_process::*;
+
+mod ontology_closure;
+mod allowed_relation_config;
+mod allowed_relation_check;
+
+use ontology_closure::parse_closure;
+use allowed_relation_config::parse_allowed_relations_config;
+use allowed_relation_check::check_relations;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -148,6 +158,13 @@ enum Action {
     FindMissing {
         #[arg(long)]
         missing_type: String,
+        paths: Vec<PathBuf>,
+    },
+    CheckAllowedRelations {
+        #[arg(long)]
+        closure_file: PathBuf,
+        #[arg(long)]
+        allowed_relations_config_file: PathBuf,
         paths: Vec<PathBuf>,
     },
 }
@@ -790,6 +807,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let gocam_py_model = gocam_py_parse(&mut source)?;
                 let missing = find_missing(missing_type, &gocam_py_model);
                 print_missing(&gocam_py_model, &missing);
+            }
+        },
+        Action::CheckAllowedRelations { closure_file, allowed_relations_config_file, paths } => {
+            let closure_file = File::open(closure_file)?;
+            let mut closure_reader = BufReader::new(closure_file);
+            let ontology_closure = parse_closure(&mut closure_reader)?;
+            let allowed_relations_config_file = File::open(allowed_relations_config_file)?;
+            let mut config_reader = BufReader::new(allowed_relations_config_file);
+            let config = parse_allowed_relations_config(&mut config_reader)?;
+            for path in paths {
+                let model = model_from_path(&path);
+
+                let warnings = check_relations(&model, &config, &ontology_closure);
+
+                for warning in warnings {
+                    println!("{}", warning);
+                }
             }
         },
     }

@@ -66,6 +66,7 @@ impl OntologyClosure {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::io::BufReader;
     use std::fs::File;
 
@@ -75,15 +76,18 @@ mod tests {
         let mut buf_reader = BufReader::new(file);
         let closure = crate::parse_closure(&mut buf_reader).unwrap();
 
-        assert_eq!(closure.term_parents.len(), 18);
+        assert_eq!(closure.term_parents.len(), 29);
 
         let go_0070858_parents = closure.term_parents.get("GO:0070858").unwrap();
-        assert_eq!(go_0070858_parents.len(), 1);
+        assert_eq!(go_0070858_parents.len(), 2);
 
-        assert_eq!(go_0070858_parents.iter().next().unwrap(),
-                   &("RO:0002212".to_owned(), "GO:0032787".to_owned()));
+        let mut expected = HashSet::new();
+        expected.insert(("RO:0002212".to_owned(), "GO:0032787".to_owned()));
+        expected.insert(("rdfs:subClassOf".to_owned(), "GO:0070858".to_owned()));
+        assert_eq!(go_0070858_parents, &expected);
 
         let go_1901953_parents = closure.get_term_parents("GO:1901953").unwrap();
-        assert_eq!(go_1901953_parents.len(), 2);
+
+        assert_eq!(go_1901953_parents.len(), 3);
     }
 }

@@ -822,7 +822,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let warnings = check_relations(&model, &config, &ontology_closure);
 
                 for warning in warnings {
-                    println!("{}", warning);
+                    println!("{}: {}", model.id(), warning);
                 }
             }
         },

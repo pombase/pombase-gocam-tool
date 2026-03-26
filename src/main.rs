@@ -14,13 +14,15 @@ use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
                     raw::{GoCamRawModel, gocam_parse_raw}};
 use pombase_gocam_process::*;
 
-mod ontology_closure;
+mod ontology_info;
 mod allowed_relation_config;
 mod allowed_relation_check;
+mod obsolete_terms;
 
-use ontology_closure::parse_closure;
+use ontology_info::parse_closure;
 use allowed_relation_config::parse_allowed_relations_config;
 use allowed_relation_check::check_relations;
+use obsolete_terms::find_obsolete_terms;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -169,9 +171,18 @@ enum Action {
         allowed_relations_config_file: PathBuf,
         paths: Vec<PathBuf>,
     },
+    FindObsoleteTerms {
+        #[arg(long)]
+        closure_file: PathBuf,
+        #[arg(long)]
+        orcid_map_file: PathBuf,
+        paths: Vec<PathBuf>,
+    },
 }
 
-fn parse_orcid_map(path: &PathBuf) -> Result<HashMap<String, String>, std::io::Error> {
+type OrcidNameMap = HashMap<String, String>;
+
+fn parse_orcid_map(path: &PathBuf) -> Result<OrcidNameMap, std::io::Error> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
 
@@ -388,6 +399,17 @@ fn print_missing(model: &GoCamPyModel, missing_list: &[GoCamMissing]) {
                  missing.occurs_in_term_id.as_deref().unwrap_or(""),
                  missing.occurs_in_term_name.as_deref().unwrap_or(""))
     }
+}
+
+
+fn get_contributor_names(model: &GoCamModel, orcid_map: &OrcidNameMap) -> String {
+    model.contributors().iter()
+        .map(|orcid| if let Some(name) = orcid_map.get(orcid) {
+            name.to_owned()
+        } else {
+            orcid.clone()
+        })
+        .join(",")
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -836,7 +858,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         allowed_relations_config_file, paths } => {
             let closure_file = File::open(closure_file)?;
             let mut closure_reader = BufReader::new(closure_file);
-            let ontology_closure = parse_closure(&mut closure_reader)?;
+            let ontology_info = parse_closure(&mut closure_reader)?;
 
             let allowed_relations_config_file = File::open(allowed_relations_config_file)?;
             let mut config_reader = BufReader::new(allowed_relations_config_file);
@@ -847,21 +869,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for path in paths {
                 let model = model_from_path(&path);
 
-                let warnings = check_relations(&model, &config, &ontology_closure);
+                let warnings = check_relations(&model, &config, &ontology_info);
 
-                let contributors = model.contributors().iter()
-                   .map(|orcid| if let Some(name) = orcid_map.get(orcid) {
-                       name.to_owned()
-                   } else {
-                       orcid.clone()
-                   })
-                   .join(",");
+                let contributor_names = get_contributor_names(&model, &orcid_map);
 
                 for warning in warnings {
-                    println!("{} ({}): {}", model.id(), contributors, warning);
+                    println!("{} ({}): {}", model.id(), contributor_names, warning);
                 }
             }
         },
+        Action::FindObsoleteTerms { closure_file, orcid_map_file, paths } => {
+            let closure_file = File::open(closure_file)?;
+            let mut closure_reader = BufReader::new(closure_file);
+            let ontology_info = parse_closure(&mut closure_reader)?;
+
+            let orcid_map = parse_orcid_map(&orcid_map_file)?;
+
+            for path in paths {
+                let model = model_from_path(&path);
+                let contributor_names = get_contributor_names(&model, &orcid_map);
+
+                let warnings = find_obsolete_terms(&model, &ontology_info);
+
+                for (term_id, term_name, cv_name, _detail) in warnings {
+                    println!("{} ({}): {} {} {}", model.id(), contributor_names,
+                             cv_name, term_id, term_name);
+                }
+            }
+        }
     }
 
     Ok(())

@@ -1,12 +1,12 @@
 use pombase_gocam::GoCamModel;
 
-use crate::{allowed_relation_config::AllowedRelConfig, ontology_closure::OntologyClosure};
+use crate::{allowed_relation_config::AllowedRelConfig, ontology_info::OntologyInfo};
 
 use pombase_gocam::REL_NAMES;
 
 pub(crate) fn check_relations(model: &GoCamModel,
                               config: &AllowedRelConfig,
-                              ontology_closure: &OntologyClosure)
+                              ontology_info: &OntologyInfo)
     -> Vec<String>
 {
     let mut ret = vec![];
@@ -19,7 +19,7 @@ pub(crate) fn check_relations(model: &GoCamModel,
         }
         let subject_term_id = &subject_node.node_id;
         let rel_id = &edge.id;
-        let Some(term_id_and_parents) = ontology_closure.get_term_parents(subject_term_id)
+        let Some(term_id_and_parents) = ontology_info.get_term_parents(subject_term_id)
         else {
             ret.push(format!("can't find parents of {}", subject_term_id));
             continue;

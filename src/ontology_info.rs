@@ -13,12 +13,12 @@ pub enum ClosureError {
 pub type TermId = String;
 pub type RelId = String;
 
-pub(crate) struct OntologyClosure {
+pub(crate) struct OntologyInfo {
     pub term_parents: HashMap<TermId, HashSet<(RelId, TermId)>>,
 }
 
 pub(crate) fn parse_closure(buf_reader: &mut dyn BufRead)
-    -> Result<OntologyClosure, ClosureError>
+    -> Result<OntologyInfo, ClosureError>
 {
     let mut term_parents = HashMap::new();
 
@@ -53,14 +53,19 @@ pub(crate) fn parse_closure(buf_reader: &mut dyn BufRead)
             .insert(("rdfs:subClassOf".to_owned(), term_id));
     }
 
-    Ok(OntologyClosure {
+    Ok(OntologyInfo {
         term_parents,
     })
 }
 
-impl OntologyClosure {
+impl OntologyInfo {
     pub fn get_term_parents(&self, id: &str) -> Option<&HashSet<(RelId, TermId)>> {
         self.term_parents.get(id)
+    }
+
+    pub fn is_obsolete_term(&self, id: &str) -> bool {
+        // this is a hack:
+        !self.term_parents.contains_key(id)
     }
 }
 

@@ -329,7 +329,6 @@ fn model_from_path(path: &PathBuf) -> GoCamModel {
     if path.extension().unwrap() == "json" {
         parse_raw_gocam_model(&mut source).unwrap()
     } else {
-        eprintln!("path: {}", path.to_str().unwrap());
         let res = parse_gocam_py_model(&mut source);
 
         match res {

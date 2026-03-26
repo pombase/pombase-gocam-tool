@@ -374,8 +374,8 @@ fn print_edges(model: &GoCamModel) {
     }
 }
 
-fn print_missing(model: &GoCamPyModel, missing_evidence: &[GoCamMissing]) {
-    for missing in missing_evidence {
+fn print_missing(model: &GoCamPyModel, missing_list: &[GoCamMissing]) {
+    for missing in missing_list {
         println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                  model.id,
                  model.title,

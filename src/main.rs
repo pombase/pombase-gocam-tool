@@ -44,6 +44,11 @@ enum Action {
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
+    PrintIndividuals {
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+    },
+    #[command(arg_required_else_help = true)]
     PrintNodes {
         #[arg(long)]
         remove_chemicals: bool,
@@ -221,6 +226,20 @@ fn print_tuples(model: &GoCamRawModel) {
         object.id,
         object_type.label.as_deref().unwrap_or(""),
         object_type.id.as_ref().unwrap_or(&object_type.type_string));
+    }
+}
+
+fn print_individuals(model: &GoCamRawModel) {
+    for individual in model.individuals() {
+        let individual_id = &individual.id;
+        let individual_type_string =
+            if let Some(individual_type) = individual.get_individual_type() {
+                individual_type.to_string()
+            } else {
+                "UNKNOWN_TYPE".to_string()
+            };
+
+        println!("{}\t{}\t{}", model.id(), individual_id, individual_type_string);
     }
 }
 
@@ -480,6 +499,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse_raw(&mut source)?;
                 print_tuples(&model);
+            }
+        },
+        Action::PrintIndividuals { paths } => {
+            for path in paths {
+                let mut source = File::open(path).unwrap();
+                let model = gocam_parse_raw(&mut source)?;
+                print_individuals(&model);
             }
         },
         Action::PrintNodes {

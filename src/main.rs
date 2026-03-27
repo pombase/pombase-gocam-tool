@@ -142,6 +142,10 @@ enum Action {
     },
     #[command(arg_required_else_help = true)]
     OverlappingNodes {
+        #[arg(long)]
+        remove_chemicals: bool,
+        #[arg(long)]
+        remove_inputs_outputs: bool,
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -748,8 +752,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             print!("{}", models_string);
         },
-        Action::OverlappingNodes { paths } => {
-            let models = models_from_paths(&paths);
+        Action::OverlappingNodes { paths, remove_chemicals, remove_inputs_outputs } => {
+            let mut remove_types = HashSet::new();
+
+            if remove_chemicals {
+                remove_types.insert(RemoveType::Chemicals);
+            } else if remove_inputs_outputs {
+                remove_types.insert(RemoveType::Targets);
+            }
+
+            let models: Vec<_> = models_from_paths(&paths).into_iter()
+                .map(|m|
+                     if remove_types.is_empty() {
+                         m
+                     } else {
+                         m.remove_nodes(remove_types.clone())
+                     })
+                .collect();
 
             let overlaps = find_chemical_overlaps(&models);
 

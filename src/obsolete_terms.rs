@@ -15,6 +15,14 @@ pub(crate) fn find_obsolete_terms(model: &GoCamModel,
     let mut seen = HashSet::new();
     let mut ret = vec![];
 
+    for title_term_id in model.title_process_term_ids() {
+        if ontology_info.is_obsolete_term(title_term_id) {
+            let obsolete = (title_term_id.clone(), model.title().to_owned(),
+                            "model title".to_owned(), None);
+            ret.push(obsolete);
+        }
+    }
+
     for (_, node) in model.node_iterator() {
         if node.is_activity() {
             if ontology_info.is_obsolete_term(&node.node_id) {

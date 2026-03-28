@@ -9,7 +9,7 @@ use petgraph::dot::{Dot, Config};
 use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
                     GoCamModel, GoCamModelId, GoCamNode, GoCamNodeType,
                     RemoveType, gocam_py::{GoCamPyModel, gocam_py_parse},
-                    overlaps::{GoCamNodeOverlap, find_chemical_overlaps},
+                    overlaps::{GoCamNodeOverlap, find_activity_overlaps, find_chemical_overlaps},
                     parse_gocam_py_model, parse_raw_gocam_model,
                     raw::{GoCamRawModel, gocam_parse_raw}};
 use pombase_gocam_process::*;
@@ -770,7 +770,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                      })
                 .collect();
 
-            let overlaps = find_chemical_overlaps(&models);
+            let overlaps = find_activity_overlaps(&models);
 
             println!("model_titles\tmodel_ids\tmodel_directions\tid\tlabel\tdescription\tpart_of_process\toccurs_in\tlocated_in");
 

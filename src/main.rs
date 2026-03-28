@@ -466,6 +466,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args.action {
         Action::Stats { paths } => {
+            println!("model_id\ttaxon\ttotal_genes\ttotal_complexes\tmax_connected_activities\t\
+                      total_connected_activities\tnumber_of_holes");
             for path in paths {
                 let model = model_from_path(&path);
 

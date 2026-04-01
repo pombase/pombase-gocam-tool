@@ -87,6 +87,8 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
 
     let taxon_id = taxon_id.replace("NCBITaxon:", "taxon:");
 
+    let db_name_prefix = db_name.to_owned() + ":";
+
     let date_modified = if let Some(ref date_modified) = model.date_modified {
         date_modified.to_owned()
     } else {
@@ -95,7 +97,12 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
     };
 
     for activity in &model.activities {
-        let gene_uniquename = &activity.enabled_by.term;
+        let Some(gene_uniquename) = &activity.enabled_by.term.strip_prefix(&db_name_prefix)
+        else {
+            // not a gene
+            continue;
+        };
+
         let mf_term_id = &activity.molecular_function.term;
 
         if let Some(evidence_item) = activity.enabled_by.evidence.first() {

@@ -1,4 +1,4 @@
-use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, io::BufRead, path::PathBuf, process::exit};
+use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, io::{BufRead, stdout}, path::PathBuf, process::exit};
 
 use std::io::BufReader;
 
@@ -18,11 +18,13 @@ mod ontology_info;
 mod allowed_relation_config;
 mod allowed_relation_check;
 mod obsolete_terms;
+mod go_format_writer;
 
 use ontology_info::parse_closure;
 use allowed_relation_config::parse_allowed_relations_config;
 use allowed_relation_check::check_relations;
 use obsolete_terms::find_obsolete_terms;
+use go_format_writer::write_go_annotation_file;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -176,6 +178,7 @@ enum Action {
         missing_type: String,
         paths: Vec<PathBuf>,
     },
+    #[command(arg_required_else_help = true)]
     CheckAllowedRelations {
         #[arg(long)]
         closure_file: PathBuf,
@@ -185,6 +188,7 @@ enum Action {
         allowed_relations_config_file: PathBuf,
         paths: Vec<PathBuf>,
     },
+    #[command(arg_required_else_help = true)]
     FindObsoleteTerms {
         #[arg(long)]
         closure_file: PathBuf,
@@ -192,6 +196,12 @@ enum Action {
         orcid_map_file: PathBuf,
         paths: Vec<PathBuf>,
     },
+    #[command(arg_required_else_help = true)]
+    WriteAnnotation {
+        #[arg(long)]
+        db_name: String,
+        paths: Vec<PathBuf>,
+    }
 }
 
 type OrcidNameMap = HashMap<String, String>;
@@ -975,6 +985,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("{} ({}): {} {} {}", model.id(), contributor_names,
                              cv_name, term_id, term_name);
                 }
+            }
+        },
+        Action::WriteAnnotation { db_name, paths } => {
+            for path in paths {
+                let mut source = File::open(path)?;
+                let gocam_py_model = gocam_py_parse(&mut source)?;
+
+                write_go_annotation_file(&mut stdout(), &gocam_py_model, &db_name)?
             }
         }
     }

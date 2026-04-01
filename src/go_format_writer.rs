@@ -4,6 +4,8 @@ use chrono::{DateTime, Local};
 use itertools::Itertools;
 use pombase_gocam::gocam_py::{BiologicalProcessAssociation, EvidenceItem, GoCamPyModel};
 
+const ND_ECO_TERM_ID: &str = "ECO:0000307";
+
 #[allow(clippy::too_many_arguments)]
 fn make_annotation_line(db_name: &str, gene_uniquename: &str,
                         term_id: &str, aspect: &str,
@@ -25,6 +27,10 @@ fn details_from_item(go_evidence_code_map: &HashMap<String, String>,
     };
 
     let ev_code = &evidence_item.term;
+
+    if ev_code == ND_ECO_TERM_ID {
+        return None;
+    }
 
     if !reference.starts_with("GO_REF:") {
         return None;

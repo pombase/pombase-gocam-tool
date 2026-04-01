@@ -1,10 +1,12 @@
 use std::{collections::{BTreeSet, HashMap, HashSet}, fs::File, io::{BufRead, stdout}, path::PathBuf, process::exit};
 
 use std::io::BufReader;
+use std::io::Read;
 
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
 use petgraph::dot::{Dot, Config};
+use yaml_rust2::{Yaml, YamlLoader};
 
 use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
                     GoCamModel, GoCamModelId, GoCamNode, GoCamNodeType,
@@ -200,6 +202,8 @@ enum Action {
     WriteAnnotation {
         #[arg(long)]
         db_name: String,
+        #[arg(long)]
+        config_file_name: String,
         paths: Vec<PathBuf>,
     }
 }
@@ -469,6 +473,41 @@ fn get_contributor_names(model: &GoCamModel, orcid_map: &OrcidNameMap) -> String
             orcid.clone()
         })
         .join(",")
+}
+
+type EvidenceConfig = HashMap<String, String>;
+
+fn parse_evidence_config(config_file_name: &str) -> EvidenceConfig {
+    let mut config_file = File::open(&config_file_name).expect("can't open config file");
+    let mut config_yaml = String::new();
+    config_file.read_to_string(&mut config_yaml).expect("can't read config file");
+
+    let docs = YamlLoader::load_from_str(&config_yaml).expect("can't read config file");
+
+    let Some(config) = docs.get(0)
+    else {
+       eprintln!("no config in config file");
+       exit(1);
+    };
+
+
+    let Yaml::Hash(ref evidence_types) = config["evidence_types"]
+    else {
+        eprintln!("evidence_types is not a map");
+        exit(1);
+    };
+
+    let mut ret = HashMap::new();
+
+    for (ev_code, evidence_type_config) in evidence_types.iter() {
+        let Yaml::String(ref ev_name) = evidence_type_config["go_name"]
+        else {
+            continue;
+        };
+        ret.insert(ev_code.as_str().unwrap().to_owned(), ev_name.to_owned());
+    }
+
+    ret
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -987,15 +1026,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         },
-        Action::WriteAnnotation { db_name, paths } => {
+        Action::WriteAnnotation { db_name, config_file_name, paths } => {
+            let evidence_code_map = parse_evidence_config(&config_file_name);
+
             for path in paths {
                 let mut source = File::open(path)?;
                 let gocam_py_model = gocam_py_parse(&mut source)?;
 
-                write_go_annotation_file(&mut stdout(), &gocam_py_model, &db_name)?
+                write_go_annotation_file(&mut stdout(), &evidence_code_map, &gocam_py_model, &db_name)?
             }
         }
     }
 
     Ok(())
 }
+

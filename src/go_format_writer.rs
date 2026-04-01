@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Error, Write};
+use std::{collections::HashMap, io::{BufWriter, Error, Write}};
 
 use chrono::{DateTime, Local};
 use itertools::Itertools;
@@ -16,6 +16,7 @@ fn make_annotation_line(db_name: &str, gene_uniquename: &str,
 
 
 pub fn write_go_annotation_file(writer: &mut dyn Write,
+                                go_evidence_code_map: &HashMap<String, String>,
                                 model: &GoCamPyModel, db_name: &str)
    -> Result<(), Error>
 {
@@ -45,9 +46,18 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
             let ev_code = &mf_evidence_item.term;
             let with_from = mf_evidence_item.with_objects.iter().join(",");
 
+            if !reference.starts_with("GO_REF:") {
+                continue;
+            }
+
+            let Some(go_ev_code) = go_evidence_code_map.get(ev_code)
+            else {
+                panic!("unknown evidence code: {}", ev_code);
+            };
+
             let line = make_annotation_line(db_name, gene_uniquename, mf_term_id,
                                             "F", reference,
-                                            ev_code, &with_from, &taxon_id, &date_modified);
+                                            go_ev_code, &with_from, &taxon_id, &date_modified);
 
             writeln!(buf_writer, "{}", line)?;
         }

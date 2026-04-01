@@ -105,12 +105,9 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
 
         let mf_term_id = &activity.molecular_function.term;
 
-        if let Some(evidence_item) = activity.enabled_by.evidence.first() {
+        if let Some(evidence_item) = activity.enabled_by.evidence.first() &&
             let Some((go_ev_code, reference, with_from)) = details_from_item(go_ev_code_map, evidence_item)
-            else {
-                continue;
-            };
-
+        {
             let line = make_annotation_line(db_name, gene_uniquename, mf_term_id,
                                             "F", &reference,
                                             &go_ev_code, &with_from, &taxon_id, &date_modified);
@@ -119,7 +116,6 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
         }
 
         if let Some(ref bp_association) = activity.part_of {
-        
             let bp_lines =
                 bp_association_lines(go_ev_code_map, db_name, &taxon_id,
                                      gene_uniquename, &date_modified, bp_association);

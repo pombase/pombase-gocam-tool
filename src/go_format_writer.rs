@@ -4,6 +4,7 @@ use chrono::{DateTime, Local};
 use itertools::Itertools;
 use pombase_gocam::gocam_py::{BiologicalProcessAssociation, EvidenceItem, GoCamPyModel};
 
+#[allow(clippy::too_many_arguments)]
 fn make_annotation_line(db_name: &str, gene_uniquename: &str,
                         term_id: &str, aspect: &str,
                         reference: &str, ev_code: &str, with_from: &str,
@@ -43,12 +44,12 @@ fn details_from_item(go_evidence_code_map: &HashMap<String, String>,
 fn bp_association_lines(go_ev_code_map: &HashMap<String, String>,
                         db_name: &str, taxon_id: &str,
                         gene_uniquename: &str, date_modified: &str,
-                        bp_association: &Box<BiologicalProcessAssociation>)
+                        bp_association: &BiologicalProcessAssociation)
     -> Vec<String>
 {
     let mut ret = vec![];
 
-    if let Some(evidence_item) = bp_association.evidence.get(0)
+    if let Some(evidence_item) = bp_association.evidence.first()
     {
 
         let bp_term_id = &bp_association.term;
@@ -56,15 +57,15 @@ fn bp_association_lines(go_ev_code_map: &HashMap<String, String>,
         if let Some((go_ev_code, reference, with_from)) = details_from_item(go_ev_code_map, evidence_item) {
             let line = make_annotation_line(db_name, gene_uniquename, bp_term_id,
                                             "P", &reference,
-                                            &go_ev_code, &with_from, &taxon_id, &date_modified);
+                                            &go_ev_code, &with_from, taxon_id, date_modified);
 
             ret.push(line)
         };
 
         if let Some(ref bp_association) = bp_association.part_of {
             let lines =
-                bp_association_lines(go_ev_code_map, db_name, &taxon_id,
-                                     gene_uniquename, &date_modified, bp_association);
+                bp_association_lines(go_ev_code_map, db_name, taxon_id,
+                                     gene_uniquename, date_modified, bp_association);
             ret.extend_from_slice(&lines);
         }
     }
@@ -97,7 +98,7 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
         let gene_uniquename = &activity.enabled_by.term;
         let mf_term_id = &activity.molecular_function.term;
 
-        if let Some(evidence_item) = activity.enabled_by.evidence.get(0) {
+        if let Some(evidence_item) = activity.enabled_by.evidence.first() {
             let Some((go_ev_code, reference, with_from)) = details_from_item(go_ev_code_map, evidence_item)
             else {
                 continue;
@@ -122,7 +123,7 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
         }
 
         if let Some(ref cc_assocation) = activity.occurs_in &&
-            let Some(evidence_item) = cc_assocation.evidence.get(0) {
+            let Some(evidence_item) = cc_assocation.evidence.first() {
 
             let cc_term_id = &cc_assocation.term;
 

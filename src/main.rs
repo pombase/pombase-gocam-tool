@@ -478,13 +478,13 @@ fn get_contributor_names(model: &GoCamModel, orcid_map: &OrcidNameMap) -> String
 type EvidenceConfig = HashMap<String, String>;
 
 fn parse_evidence_config(config_file_name: &str) -> EvidenceConfig {
-    let mut config_file = File::open(&config_file_name).expect("can't open config file");
+    let mut config_file = File::open(config_file_name).expect("can't open config file");
     let mut config_yaml = String::new();
     config_file.read_to_string(&mut config_yaml).expect("can't read config file");
 
     let docs = YamlLoader::load_from_str(&config_yaml).expect("can't read config file");
 
-    let Some(config) = docs.get(0)
+    let Some(config) = docs.first()
     else {
        eprintln!("no config in config file");
        exit(1);

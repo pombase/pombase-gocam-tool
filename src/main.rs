@@ -490,7 +490,6 @@ fn parse_evidence_config(config_file_name: &str) -> EvidenceConfig {
        exit(1);
     };
 
-
     let Yaml::Hash(ref evidence_types) = config["evidence_types"]
     else {
         eprintln!("evidence_types is not a map");

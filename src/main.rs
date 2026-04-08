@@ -328,7 +328,7 @@ fn node_as_tsv(node: &GoCamNode, include_inputs_outputs: bool) -> String {
     ret.push_str(&format!("{}\t{}\t{}\t{}\t", node_type, enabled_by_type, enabled_by_id, enabled_by_label));
 
     if let Some(ref part_of_process) = node.part_of_process {
-        ret.push_str(&format!("{}\t", part_of_process.label_or_id()));
+        ret.push_str(&format!("{}\t", part_of_process.long_label()));
     } else {
         ret.push('\t');
     }

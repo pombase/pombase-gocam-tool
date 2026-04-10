@@ -514,16 +514,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match args.action {
         Action::Stats { paths } => {
-            println!("model_id\ttaxon\ttotal_genes\ttotal_complexes\tmax_connected_activities\t\
+            println!("model_id\ttaxon\ttotal_genes\ttotal_complexes\t\
+                      connected_genes\tmax_connected_activities\t\
                       total_connected_activities\tnumber_of_holes");
             for path in paths {
                 let model = model_from_path(&path);
 
                 let stats = get_stats(&model);
 
-                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(),
-                stats.total_genes, stats.total_complexes, stats.max_connected_activities,
-                stats.total_connected_activities, stats.number_of_holes);
+                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", model.id(), model.taxon(),
+                         stats.total_genes, stats.total_complexes, stats.connected_genes,
+                         stats.max_connected_activities,
+                         stats.total_connected_activities, stats.number_of_holes);
             }
         }
         Action::ConnectedGenes { paths } => {

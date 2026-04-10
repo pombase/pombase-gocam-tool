@@ -64,6 +64,8 @@ enum Action {
         #[arg(long)]
         remove_inputs_outputs: bool,
         #[arg(long)]
+        no_print_inputs_outputs: bool,
+        #[arg(long)]
         with_types: Option<String>,
         #[arg(long)]
         with_location: Option<bool>,
@@ -598,7 +600,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Action::PrintNodes {
-            remove_chemicals, remove_inputs_outputs, with_location, with_types, args
+            remove_chemicals, remove_inputs_outputs, with_location, with_types,
+            no_print_inputs_outputs, args
         } => {
             println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
 
@@ -645,7 +648,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
 
                     println!("{}\t{}\t{}\t{}", model_id, model_title, model_taxon,
-                             node_as_tsv(node, true));
+                             node_as_tsv(node, !no_print_inputs_outputs));
                 }
             }
         },

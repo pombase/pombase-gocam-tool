@@ -220,6 +220,10 @@ fn parse_orcid_map(path: &PathBuf) -> Result<OrcidNameMap, std::io::Error> {
 
     for line_result in reader.lines() {
         let line = line_result?;
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
         let bits: Vec<_> = line.split("\t").collect();
         ret.insert(bits[0].to_owned(), bits[1].to_owned());
         ret.insert(format!("https://orcid.org/{}", bits[0]), bits[1].to_owned());
@@ -336,7 +340,6 @@ fn node_as_tsv(node: &GoCamNode, include_inputs_outputs: bool) -> String {
     }
 
     if include_inputs_outputs {
-
         if let GoCamNodeType::Activity(GoCamActivity { ref inputs, ref outputs, .. }) = node.node_type {
             if !inputs.is_empty() {
                 let has_input_string =

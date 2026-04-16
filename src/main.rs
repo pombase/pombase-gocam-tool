@@ -830,7 +830,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let overlaps = find_activity_overlaps(&models);
 
-            println!("model_titles\tmodel_ids\tmodel_directions\tid\tlabel\tdescription\tpart_of_process\toccurs_in\tlocated_in");
+            println!("model_titles\tmodel_ids\tmodel_directions\toriginal_model_id\tid\tlabel\tdescription\tpart_of_process\toccurs_in\tlocated_in");
 
             for overlap in &overlaps {
                 let mut models = HashSet::new();
@@ -869,10 +869,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                            .map(|(id, title, direction)| (id.to_owned(), (title.to_owned(), direction.to_string())))
                            .unzip();
 
-                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                          model_titles.into_iter().collect::<Vec<_>>().join("|"),
                          model_ids.into_iter().collect::<Vec<_>>().join("+"),
                          model_directions.into_iter().collect::<Vec<_>>().join(","),
+                         overlap.original_model_id.as_deref().unwrap_or_default(),
                          overlap.node_id, overlap.node_label,
                          overlap.node_type,
                          process_label,

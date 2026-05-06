@@ -69,6 +69,8 @@ enum Action {
         with_types: Option<String>,
         #[arg(long)]
         with_location: Option<bool>,
+        #[arg(long)]
+        orcid_map_file: Option<PathBuf>,
         #[arg(required = true)]
         args: Vec<String>,
     },
@@ -626,8 +628,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Action::PrintNodes {
             remove_chemicals, remove_inputs_outputs, with_location, with_types,
-            no_print_inputs_outputs, args
+            no_print_inputs_outputs, orcid_map_file, args
         } => {
+            let orcid_map = if let Some(ref filename) = orcid_map_file {
+                Some(parse_orcid_map(filename)?)
+            } else {
+                None
+            };
+
             println!("model_id\tmodel_title\ttaxon\toriginal_model_id\tindividual_gocam_id\tnode_id\tnode_label\tnode_type\tenabled_by_type\tenabled_by_id\tenabled_by_label\tprocess\tinput\toutput\toccurs_in\tlocated_in\thappens_during\tparts");
 
             let with_types =
@@ -657,7 +665,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 };
 
-                let model_id = model.id();
+                let model_id = 
+                    if let Some(ref orcid_map) = orcid_map {
+                        let contributor_names = get_contributor_names(&model, &orcid_map);
+                        format!("{} ({})", model.id(), contributor_names)
+                    } else {
+                        model.id().to_owned()
+                    };
+
                 let model_title = model.title();
                 let model_taxon = model.taxon();
 

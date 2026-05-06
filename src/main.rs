@@ -137,11 +137,15 @@ enum Action {
     DetachedGenes {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
+        #[arg(long)]
+        orcid_map_file: PathBuf,
     },
     #[command(arg_required_else_help = true)]
     DetachedChemicals {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
+        #[arg(long)]
+        orcid_map_file: PathBuf,
     },
     #[command(arg_required_else_help = true)]
     Serialize {
@@ -667,7 +671,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let model_id = 
                     if let Some(ref orcid_map) = orcid_map {
-                        let contributor_names = get_contributor_names(&model, &orcid_map);
+                        let contributor_names = get_contributor_names(&model, orcid_map);
                         format!("{} ({})", model.id(), contributor_names)
                     } else {
                         model.id().to_owned()
@@ -808,14 +812,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             println!("{}", dag_graphviz);
         },
-        Action::DetachedGenes { paths } => {
+        Action::DetachedGenes { paths, orcid_map_file } => {
+            let orcid_map = parse_orcid_map(&orcid_map_file)?;
+
             println!("model_id\tgene_internal_id\tgene_systematic_id\tgene_name");
 
             for path in paths {
                 let mut source = File::open(path).unwrap();
                 let model = gocam_parse_raw(&mut source)?;
+                let parsed_model = GoCamModel::new_from_raw(model.clone());
 
-                let model_id = model.id();
+                let contributor_names = get_contributor_names(&parsed_model, &orcid_map);
+                let model_id = format!("{} ({})", model.id(), contributor_names);
 
                 let detached_genes = find_detached_genes(&model);
 
@@ -824,13 +832,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         },
-        Action::DetachedChemicals { paths } => {
+        Action::DetachedChemicals { paths, orcid_map_file } => {
+            let orcid_map = parse_orcid_map(&orcid_map_file)?;
+
             println!("model_id\tmodel_title\tchebi_id\tname");
 
             let models = models_from_paths(&paths);
 
             for model in models {
-                let model_id = model.id();
+                let contributor_names = get_contributor_names(&model, &orcid_map);
+                let model_id = format!("{} ({})", model.id(), contributor_names);
                 let model_title = model.title();
 
                 let chemicals = find_detached_chemicals(&model);

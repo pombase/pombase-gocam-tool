@@ -173,6 +173,8 @@ enum Action {
     FindMissingEvidence {
         #[arg(long)]
         missing_type: String,
+        #[arg(long)]
+        orcid_map_file: PathBuf,
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
@@ -180,6 +182,8 @@ enum Action {
     FindMissing {
         #[arg(long)]
         missing_type: String,
+        #[arg(long)]
+        orcid_map_file: PathBuf,
         paths: Vec<PathBuf>,
     },
     #[command(arg_required_else_help = true)]
@@ -453,10 +457,12 @@ fn print_edges(model: &GoCamModel) {
     }
 }
 
-fn print_missing(model: &GoCamPyModel, missing_list: &[GoCamMissing]) {
+fn print_missing(model: &GoCamPyModel, orcid_map: &OrcidNameMap,
+                 missing_list: &[GoCamMissing]) {
     for missing in missing_list {
-        println!("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                 model.id,
+        let contributor_names = get_gocam_py_contributor_names(model, orcid_map);
+        println!("{} ({})\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                 model.id, contributor_names,
                  model.title,
                  missing.enabler_id,
                  missing.enabler_label.as_deref().unwrap_or(""),
@@ -469,6 +475,22 @@ fn print_missing(model: &GoCamPyModel, missing_list: &[GoCamMissing]) {
     }
 }
 
+
+fn get_gocam_py_contributor_names(model: &GoCamPyModel, orcid_map: &OrcidNameMap) -> String {
+    model.provenances.iter()
+        .flat_map(|provenance| {
+            provenance.contributor.iter()
+                .map(|orcid| {
+                    if let Some(name) = orcid_map.get(orcid) {
+                        name.to_owned()
+                    } else {
+                        orcid.clone()
+                    }
+                })
+        })
+
+        .join(",")
+}
 
 fn get_contributor_names(model: &GoCamModel, orcid_map: &OrcidNameMap) -> String {
     model.contributors().iter()
@@ -938,7 +960,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}\t{}\t{}", chem_id, chem_label, model_ids_string);
             }
         },
-        Action::FindMissingEvidence { missing_type: missing_type_arg, paths } => {
+        Action::FindMissingEvidence { missing_type: missing_type_arg, orcid_map_file, paths } => {
+            let orcid_map = parse_orcid_map(&orcid_map_file)?;
             let missing_type = match missing_type_arg.as_str() {
                 "mf"|"molecular_function" => {
                     GoCamMissingType::MolecularFunction
@@ -963,10 +986,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path)?;
                 let gocam_py_model = gocam_py_parse(&mut source)?;
                 let missing = find_missing_evidence(missing_type, &gocam_py_model);
-                print_missing(&gocam_py_model, &missing);
+                print_missing(&gocam_py_model, &orcid_map, &missing);
             }
         },
-        Action::FindMissing { missing_type: missing_type_arg, paths } => {
+        Action::FindMissing { missing_type: missing_type_arg, orcid_map_file, paths } => {
+            let orcid_map = parse_orcid_map(&orcid_map_file)?;
             let missing_type = match missing_type_arg.as_str() {
                 "bp"|"biological_process" => {
                     GoCamMissingType::BiologicalProcess
@@ -988,7 +1012,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut source = File::open(path)?;
                 let gocam_py_model = gocam_py_parse(&mut source)?;
                 let missing = find_missing(missing_type, &gocam_py_model);
-                print_missing(&gocam_py_model, &missing);
+                print_missing(&gocam_py_model, &orcid_map, &missing);
             }
         },
         Action::CheckAllowedRelations { closure_file, orcid_map_file,

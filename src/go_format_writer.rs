@@ -32,14 +32,14 @@ fn details_from_item(go_evidence_code_map: &HashMap<String, String>,
         return None;
     }
 
-    if !reference.starts_with("GO_REF:") {
-        return None;
-    }
-
     let Some(go_ev_code) = go_evidence_code_map.get(ev_code)
     else {
         panic!("unknown evidence code: {}", ev_code);
     };
+
+    if !reference.starts_with("GO_REF:") && ev_code != "ECO:0000304" {
+        return None;
+    }
 
     let with_from = evidence_item.with_objects.iter().join(",");
 
@@ -66,7 +66,7 @@ fn bp_association_lines(go_ev_code_map: &HashMap<String, String>,
                                             &go_ev_code, &with_from, taxon_id, date_modified);
 
             ret.push(line)
-        };
+        }
 
         if let Some(ref bp_association) = bp_association.part_of {
             let lines =

@@ -34,7 +34,8 @@ fn details_from_item(go_evidence_code_map: &HashMap<String, String>,
 
     let Some(go_ev_code) = go_evidence_code_map.get(ev_code)
     else {
-        panic!("unknown evidence code: {}", ev_code);
+        eprintln!("unknown evidence code: {}", ev_code);
+        return None;
     };
 
     if !reference.starts_with("GO_REF:") && ev_code != "ECO:0000304" {

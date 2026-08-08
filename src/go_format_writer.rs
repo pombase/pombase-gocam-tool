@@ -63,6 +63,7 @@ fn bp_association_lines(go_ev_code_map: &HashMap<String, String>,
         let details = details_from_item(go_ev_code_map, evidence_item)?;
 
         if let Some((go_ev_code, reference, with_from)) = details {
+            let reference = reference.replace(" ", "");
             let line = make_annotation_line(db_name, gene_uniquename, bp_term_id,
                                             "P", &reference,
                                             &go_ev_code, &with_from, taxon_id, date_modified);
@@ -117,6 +118,7 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
             match details_from_item(go_ev_code_map, evidence_item) {
                 Ok(details) => {
                     if let Some((go_ev_code, reference, with_from)) = details {
+                        let reference = reference.replace(" ", "");
                         let line = make_annotation_line(db_name, gene_uniquename, mf_term_id,
                                                         "F", &reference,
                                                         &go_ev_code, &with_from, &taxon_id, &date_modified);
@@ -167,6 +169,8 @@ pub fn write_go_annotation_file(writer: &mut dyn Write,
             else {
                 continue;
             };
+
+            let reference = reference.replace(" ", "");
 
             let line = make_annotation_line(db_name, gene_uniquename, cc_term_id,
                                             "C", &reference,

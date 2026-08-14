@@ -37,7 +37,8 @@ fn details_from_item(go_evidence_code_map: &HashMap<String, String>,
         return Err(format!("unknown evidence code: {}", ev_code));
     };
 
-    if !reference.starts_with("GO_REF:") && ev_code != "ECO:0000304" {
+    if !reference.starts_with("GO_REF:") &&
+        ev_code != "ECO:0000304" && ev_code != "ECO:0000266" {
         return Ok(None);
     }
 

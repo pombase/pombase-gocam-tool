@@ -70,6 +70,8 @@ enum Action {
         #[arg(long)]
         with_location: Option<bool>,
         #[arg(long)]
+        with_process: Option<bool>,
+        #[arg(long)]
         orcid_map_file: Option<PathBuf>,
         #[arg(required = true)]
         args: Vec<String>,
@@ -632,6 +634,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Action::PrintNodes {
             remove_chemicals, remove_inputs_outputs, with_location, with_types,
+            with_process,
             no_print_inputs_outputs, orcid_map_file, args
         } => {
             let orcid_map = if let Some(ref filename) = orcid_map_file {
@@ -669,7 +672,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 };
 
-                let model_id = 
+                let model_id =
                     if let Some(ref orcid_map) = orcid_map {
                         let contributor_names = get_contributor_names(&model, orcid_map);
                         format!("{} ({})", model.id(), contributor_names)
@@ -688,6 +691,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     if let Some(with_location) = with_location &&
                         with_location != node.has_location() {
+                            continue;
+                        }
+
+                    if let Some(with_process) = with_process &&
+                        (!node.is_activity() || with_process != node.has_process()) {
                             continue;
                         }
 

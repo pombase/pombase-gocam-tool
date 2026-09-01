@@ -843,7 +843,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Action::DetachedChemicals { paths, orcid_map_file } => {
             let orcid_map = parse_orcid_map(&orcid_map_file)?;
 
-            println!("model_id\tmodel_title\tchebi_id\tname");
+            let mut header_written = false;
 
             let models = models_from_paths(&paths);
 
@@ -855,6 +855,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let chemicals = find_detached_chemicals(&model);
 
                 for chemical in chemicals {
+                    if !header_written {
+                        println!("model_id\tmodel_title\tchebi_id\tname");
+                        header_written = true;
+                    }
                     println!("{}\t{}\t{}\t{}", model_id, model_title, chemical.id(), chemical.label());
                 }
             }

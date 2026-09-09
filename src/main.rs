@@ -605,7 +605,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     match node.node_type {
-                        GoCamNodeType::Activity(GoCamActivity { ref enabler, ref inputs, ref outputs }) => {
+                        GoCamNodeType::Activity(GoCamActivity { enabler: ref _enabler, ref inputs, ref outputs }) => {
                             activities += 1;
                             total_go_term_occurrences += node.occurs_in.len();
                             if node.node_id != "GO:0003674" {

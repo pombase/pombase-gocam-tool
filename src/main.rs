@@ -569,20 +569,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Action::TotalStats { paths } => {
-            let TotalStats { raw_nodes, raw_edges, nodes, edges, activities, chemicals,
-                             target_genes, total_connected_activities,
-                             total_go_term_occurrences } =
-                get_total_stats(&paths)?;
-
-            println!("raw nodes: {raw_nodes}");
-            println!("raw edges: {raw_edges}");
-            println!("nodes: {nodes}");
-            println!("edges: {edges}");
-            println!("activities: {activities}");
-            println!("connected activities: {total_connected_activities}");
-            println!("target genes: {target_genes}");
-            println!("chemicals: {chemicals}");
-            println!("total GO term occurrences: {total_go_term_occurrences}");
+            let total_stats = get_total_stats(&paths)?;
+            let total_stats_string = serde_json::to_string(&total_stats).unwrap();
+            println!("{total_stats_string}");
         }
         Action::ConnectedGenes { paths } => {
             println!("taxon\tgene");

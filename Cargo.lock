@@ -71,12 +71,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.102"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
-
-[[package]]
 name = "arraydeque"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -474,10 +468,9 @@ dependencies = [
 
 [[package]]
 name = "pombase-gocam-process"
-version = "0.163.0"
-source = "git+https://github.com/pombase/pombase-gocam-process.git#503926212c3e6023e922ec6a56b7521f69c5932f"
+version = "0.164.0"
+source = "git+https://github.com/pombase/pombase-gocam-process.git#d094db877baa6bc4003dbf24ce20fd97b535d4a1"
 dependencies = [
- "anyhow",
  "itertools",
  "lazy_static",
  "petgraph",

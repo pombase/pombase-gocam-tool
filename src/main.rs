@@ -569,81 +569,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Action::TotalStats { paths } => {
-            let mut raw_nodes = 0;
-            let mut raw_edges = 0;
-
-            let mut nodes = 0;
-            let mut edges = 0;
-
-            let mut activities = 0;
-            let mut chemicals = 0;
-
-            let mut target_genes = 0;
-
-            let mut total_connected_activities = 0;
-
-            let mut total_go_term_occurrences = 0;
-
-            for path in paths {
-                let mut source = File::open(path).unwrap();
-                let raw_model = gocam_parse_raw(&mut source)?;
-
-                raw_nodes += raw_model.individuals().count();
-                raw_edges += raw_model.facts().count();
-
-                let model = GoCamModel::new_from_raw(raw_model);
-
-                for (_, node) in model.node_iterator() {
-                    nodes += 1;
-
-                    if node.has_process() {
-                        total_go_term_occurrences += 1;
-                    }
-
-                    if node.happens_during.is_some() {
-                        total_go_term_occurrences += 1;
-                    }
-
-                    match node.node_type {
-                        GoCamNodeType::Activity(GoCamActivity { enabler: ref _enabler, ref inputs, ref outputs }) => {
-                            activities += 1;
-                            total_go_term_occurrences += node.occurs_in.len();
-                            if node.node_id != "GO:0003674" {
-                                total_go_term_occurrences += 1;
-                            }
-                            for input in inputs.iter() {
-                                if input.located_in.is_some() {
-                                    total_go_term_occurrences += 1;
-                                }
-                                if input.is_gene() {
-                                    target_genes += 1;
-                                }
-                            }
-                            for output in outputs.iter() {
-                                if output.located_in.is_some() {
-                                    total_go_term_occurrences += 1;
-                                }
-                                if output.is_gene() {
-                                    target_genes += 1;
-                                }
-                            }
-                        },
-                        GoCamNodeType::Chemical(ref chemical) => {
-                            chemicals += 1;
-                            if chemical.located_in.is_some() {
-                                total_go_term_occurrences += 1;
-                            }
-                        },
-                        _ => (),
-                    }
-                }
-
-                edges += model.edge_iterator().count();
-
-                let model_stats = get_stats(&model);
-
-                total_connected_activities += model_stats.total_connected_activities;
-            }
+            let TotalStats { raw_nodes, raw_edges, nodes, edges, activities, chemicals,
+                             target_genes, total_connected_activities,
+                             total_go_term_occurrences } =
+                get_total_stats(&paths)?;
 
             println!("raw nodes: {raw_nodes}");
             println!("raw edges: {raw_edges}");

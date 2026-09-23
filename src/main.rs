@@ -5,7 +5,7 @@ use std::io::Read;
 
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
-use petgraph::dot::{Dot, Config};
+use petgraph::{algo, dot::{Config, Dot}};
 use yaml_rust2::{Yaml, YamlLoader};
 
 use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
@@ -224,7 +224,12 @@ enum Action {
         #[arg(long)]
         config_file_name: String,
         paths: Vec<PathBuf>,
-    }
+    },
+    #[command(arg_required_else_help = true)]
+    CheckModel {
+        #[arg(required = true)]
+        args: Vec<String>,
+    },
 }
 
 type OrcidNameMap = HashMap<String, String>;
@@ -547,6 +552,24 @@ fn parse_evidence_config(config_file_name: &str) -> EvidenceConfig {
     }
 
     ret
+}
+
+fn check_model(model: &GoCamModel) -> Option<(GoCamModelId, GoCamNode)> {
+    let mut remove_types = HashSet::new();
+    remove_types.insert(RemoveType::Chemicals);
+
+    let model = model.remove_nodes(remove_types);
+
+    for (node_idx, node) in model.node_iterator() {
+        let mut space = algo::DfsSpace::new(&model.graph());
+        for neighbour in model.graph().neighbors(node_idx) {
+            if algo::has_path_connecting(model.graph(), neighbour, node_idx, Some(&mut space)) {
+                return Some((model.id().to_owned(), node.to_owned()));
+            }
+        }
+    }
+
+    None
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -1114,6 +1137,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let gocam_py_model = gocam_py_parse(&mut source)?;
 
                 write_go_annotation_file(&mut stdout(), &evidence_code_map, &gocam_py_model, &db_name)?
+            }
+        },
+        Action::CheckModel { args } => {
+            let mut cycles = vec![];
+
+            for arg in args {
+                let model = model_from_paths(&arg);
+
+                if let Some(cycle) = check_model(&model) {
+                    cycles.push(cycle);
+                };
+            }
+
+            if !cycles.is_empty() {
+                println!("models with cycles:");
+
+                for (model_id, example_node) in cycles {
+                    println!("  {}:", model_id);
+                    println!("    example node: {}", example_node);
+                }
             }
         }
     }

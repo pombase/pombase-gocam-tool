@@ -331,6 +331,7 @@ fn node_type_summary_strings(node: &GoCamNode)
             GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
             GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label().to_owned()),
             GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label().to_owned()),
+            GoCamEnabledBy::Unknown => ("unknown", "unknown", "", String::default())
         }
     }
 }

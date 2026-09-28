@@ -8,12 +8,7 @@ use itertools::Itertools;
 use petgraph::{algo, dot::{Config, Dot}};
 use yaml_rust2::{Yaml, YamlLoader};
 
-use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm,
-                    GoCamModel, GoCamModelId, GoCamNode, GoCamNodeType,
-                    RemoveType, gocam_py::{GoCamPyModel, gocam_py_parse},
-                    overlaps::{GoCamNodeOverlap, find_activity_overlaps, find_chemical_overlaps},
-                    parse_gocam_py_model, parse_raw_gocam_model,
-                    raw::{GoCamRawModel, gocam_parse_raw}};
+use pombase_gocam::{GoCamActivity, GoCamEnabledBy, GoCamMergeAlgorithm, GoCamModel, GoCamModelId, GoCamNode, GoCamNodeType, RemoveType, gocam_py::{GoCamPyModel, gocam_py_parse}, overlaps::{GoCamNodeOverlap, find_activity_overlaps, find_chemical_overlaps}, parse_gocam_py_model, parse_raw_gocam_model, raw::{GoCamRawModel, PRO_PROTEIN_ID, gocam_parse_raw}};
 use pombase_gocam_process::*;
 
 mod ontology_info;
@@ -319,7 +314,7 @@ fn node_type_summary_strings(node: &GoCamNode)
      -> (&str, &str, &str, String)
 {
     match &node.node_type {
-        GoCamNodeType::Unknown => ("unknown", "unknown", "unknown", "unknown".to_owned()),
+        GoCamNodeType::UnknownProtein => ("unknown_protein", "unknown", "unknown", "unknown".to_owned()),
         GoCamNodeType::Chemical(_) => ("chemical", "", "", "".to_owned()),
         GoCamNodeType::UnknownMRNA => ("unknown_mrna", "", "", "".to_owned()),
         GoCamNodeType::MRNA(_) => ("mRNA", "", "", "".to_owned()),
@@ -331,7 +326,7 @@ fn node_type_summary_strings(node: &GoCamNode)
             GoCamEnabledBy::Gene(gene) => ("activity", "gene", gene.id(), gene.label()),
             GoCamEnabledBy::ModifiedProtein(prot) => ("activity", "modified_protein", prot.id(), prot.label().to_owned()),
             GoCamEnabledBy::Complex(complex) => ("activity", "complex", complex.id(), complex.label().to_owned()),
-            GoCamEnabledBy::Unknown => ("unknown", "unknown", "", String::default())
+            GoCamEnabledBy::UnknownProtein => ("activity", "unknown_protein", PRO_PROTEIN_ID, "unknown protein".to_owned())
         }
     }
 }
